@@ -114,12 +114,18 @@ This is the official codebase for Reset-Free Lifelong Learning with Skill-Space 
 Note that the code has been modified since the paper so results may be slightly different.
 
 ```
-@misc{lu2020resetfree,
-      title={Reset-Free Lifelong Learning with Skill-Space Planning}, 
-      author={Kevin Lu and Aditya Grover and Pieter Abbeel and Igor Mordatch},
-      year={2020},
-      eprint={2012.03548},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG}
+@inproceedings{lu2021lisp,
+  title     = {Reset-Free Lifelong Learning with Skill-Space Planning},
+  author    = {Kevin Lu and
+               Aditya Grover and
+               Pieter Abbeel and
+               Igor Mordatch},
+  booktitle = {9th International Conference on Learning Representations, {ICLR} 2021,
+               Virtual Event, Austria, May 3-7, 2021},
+  year      = {2021}
 }
 ```
+
+### License
+
+MIT
