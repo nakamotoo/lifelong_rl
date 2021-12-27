@@ -90,6 +90,8 @@ class DADSTrainer(TorchTrainer):
         self._next_obs[self._ptr] = next_obs
         self._true_next_obs[self._ptr] = true_next_obs
         self._actions[self._ptr] = action
+        # print("obs!", obs,)
+        # print("nextobs!", next_obs)
         self._latents[self._ptr] = latent
 
         if logprob is not None:

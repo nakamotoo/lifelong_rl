@@ -18,10 +18,10 @@ if __name__ == "__main__":
         algorithm='DADS',
         collector_type='batch_latent',
         replay_buffer_size=int(1e6),   # for DADS, only used to store past history
-        generated_replay_buffer_size=10000,   # off-policy replay buffer helps learning
+        generated_replay_buffer_size=20000,   # off-policy replay buffer helps learning
         env_name=ENV_NAME,
         env_kwargs=dict(
-            grid_files=['blank'],  # specifies which file to load for gridworld
+            # grid_files=['blank'],  # specifies which file to load for gridworld
             terminates=False,
         ),
         policy_kwargs=dict(
@@ -35,8 +35,8 @@ if __name__ == "__main__":
         ),
         trainer_kwargs=dict(
             num_prior_samples=512,
-            num_discrim_updates=32,
-            num_policy_updates=128,
+            num_discrim_updates=128,
+            num_policy_updates=256,
             discrim_learning_rate=3e-4,
             policy_batch_size=256,
             reward_bounds=(-30, 30),
@@ -49,13 +49,13 @@ if __name__ == "__main__":
             soft_target_tau=5e-3,
         ),
         algorithm_kwargs=dict(
-            num_epochs=100,
+            num_epochs=1000,
             num_eval_steps_per_epoch=5000,
             num_trains_per_train_loop=1,
-            num_expl_steps_per_train_loop=2000,
+            num_expl_steps_per_train_loop=5000,
             min_num_steps_before_training=0,
-            max_path_length=100,
-            save_snapshot_freq=100,
+            max_path_length=1000,
+            save_snapshot_freq=50,
         ),
     )
 
