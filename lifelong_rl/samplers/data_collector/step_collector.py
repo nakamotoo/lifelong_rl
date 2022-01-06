@@ -80,11 +80,16 @@ class MdpStepCollector(StepCollector):
             agent_info = dict()
         else:
             action, agent_info = self._policy.get_action(self._obs)
+
+        #追加
+        env_state = self._env.sim.get_state()
+
         next_ob, reward, terminal, env_info = (
             self._env.step(action)
         )
+
         env_transition = (
-            self._obs, action, reward, terminal, next_ob, env_info
+            self._obs, action, reward, terminal, next_ob, env_info, env_state
         )
 
         if self._render:

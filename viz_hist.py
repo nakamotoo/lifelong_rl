@@ -34,7 +34,7 @@ parser.add_argument('--start', '-s', type=int, default=0,
                     help='Timestep to start visualization from')
 parser.add_argument('--end', '-e', type=int, default=100,
                     help='Timestep to end visualization (should be > start)')
-parser.add_argument('--time_delay', '-dt', type=float, default=0.008,
+parser.add_argument('--time_delay', '-dt', type=float, default=0.02,
                     help='Length of time between frames')
 args = parser.parse_args(sys.argv[1:])
 

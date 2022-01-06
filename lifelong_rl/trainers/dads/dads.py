@@ -179,35 +179,34 @@ class DADSTrainer(TorchTrainer):
         """
 
         if train_discrim:
-            self.train_discriminator(epoch_obs, epoch_next_obs, epoch_latents)
+            self.train_discriminator()
         if train_policy:
             self.train_from_buffer()
 
-    def train_discriminator(self, obs, next_obs, latents):
-
-        obs_deltas = next_obs - obs
-
+    def train_discriminator(self):
         self.discriminator.train()
         start_discrim_loss = None
 
         for i in range(self.num_discrim_updates):
             batch = ppp.sample_batch(
                 self.policy_batch_size,
-                obs=obs,
-                latents=latents,
-                obs_deltas=obs_deltas,
+                obs=self._obs[:self._cur_replay_size],
+                next_obs=self._next_obs[:self._cur_replay_size],
+                latents=self._latents[:self._cur_replay_size],
             )
             batch = ptu.np_to_pytorch_batch(batch)
 
+            obs_deltas = batch['next_obs'] - batch['obs']
+
             if self.restrict_input_size > 0:
                 batch['obs'] = batch['obs'][:, :self.restrict_input_size]
-                batch['obs_deltas'] = batch['obs_deltas'][:, :self.restrict_input_size]
+                obs_deltas = obs_deltas[:, :self.restrict_input_size]
 
             # we embedded the latent in the observation, so (s, z) -> (delta s')
             discrim_loss = self.discriminator.get_loss(
                 batch['obs'],
                 batch['latents'],
-                batch['obs_deltas'],
+                obs_deltas,
             )
 
             if i == 0:
@@ -222,6 +221,50 @@ class DADSTrainer(TorchTrainer):
             self.eval_statistics['Discriminator Start Loss'] = ptu.get_numpy(start_discrim_loss).mean()
 
         gt.stamp('discriminator training', unique=False)
+
+
+
+    # def train_discriminator(self, obs, next_obs, latents):
+    #     print("training discriminator")
+    #     print("obs shape", obs.shape)
+    #     obs_deltas = next_obs - obs
+
+    #     self.discriminator.train()
+    #     start_discrim_loss = None
+
+    #     for i in range(self.num_discrim_updates):
+    #         print(i, self.policy_batch_size)
+    #         batch = ppp.sample_batch(
+    #             self.policy_batch_size,
+    #             obs=obs,
+    #             latents=latents,
+    #             obs_deltas=obs_deltas,
+    #         )
+    #         batch = ptu.np_to_pytorch_batch(batch)
+
+    #         if self.restrict_input_size > 0:
+    #             batch['obs'] = batch['obs'][:, :self.restrict_input_size]
+    #             batch['obs_deltas'] = batch['obs_deltas'][:, :self.restrict_input_size]
+
+    #         # we embedded the latent in the observation, so (s, z) -> (delta s')
+    #         discrim_loss = self.discriminator.get_loss(
+    #             batch['obs'],
+    #             batch['latents'],
+    #             batch['obs_deltas'],
+    #         )
+
+    #         if i == 0:
+    #             start_discrim_loss = discrim_loss
+
+    #         self.discrim_optim.zero_grad()
+    #         discrim_loss.backward()
+    #         self.discrim_optim.step()
+
+    #     if self._need_to_update_eval_statistics:
+    #         self.eval_statistics['Discriminator Loss'] = ptu.get_numpy(discrim_loss).mean()
+    #         self.eval_statistics['Discriminator Start Loss'] = ptu.get_numpy(start_discrim_loss).mean()
+
+    #     gt.stamp('discriminator training', unique=False)
 
     def train_from_buffer(self, reward_kwargs=None):
 

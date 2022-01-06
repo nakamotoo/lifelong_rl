@@ -63,7 +63,7 @@ def create_log_dir(
     exp_name = create_exp_name(exp_prefix, exp_id=exp_id,
                                seed=seed)
     if base_log_dir is None:
-        base_log_dir = os.getcwd() + '/data/'
+        base_log_dir = '/data/local/mitsuhiko/lifelong_rl/'
     if include_exp_prefix_sub_dir:
         log_dir = osp.join(base_log_dir, exp_prefix.replace("_", "-"), exp_name)
     else:

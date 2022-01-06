@@ -1,5 +1,5 @@
 # 結果の可視化
-python viz_hist.py --snapshot=./data/06-29-dads-hopper/06-29-dads-hopper_2021_06_29_22_13_08_0000--s-65985928/itr_999 --env=Hopper --end=5000 --output=visualize/test.mp4
+python viz_hist.py --snapshot=/data/local/mitsuhiko/lifelong_rl/itr_999 --env=HalfCheetah --end=1500 --output=visualize/test.mp4
 
 export PYTHONPATH=$PYTHONPATH:~/doodad
 

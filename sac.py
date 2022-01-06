@@ -3,9 +3,9 @@ from experiment_utils.launch_experiment import launch_experiment
 from experiment_configs.configs.q_learning.sac_config import get_config
 from experiment_configs.algorithms.online import get_algorithm
 
-ENV_NAME = 'Hopper'
+ENV_NAME = 'HalfCheetah'
 experiment_kwargs = dict(
-    exp_name='sac-hopper',
+    exp_name='sac-cheetah',
     num_seeds=1,
     instance_type='c4.4xlarge',
     use_gpu=True,
@@ -30,14 +30,14 @@ if __name__ == "__main__":
             qf_lr=3e-4,
         ),
         algorithm_kwargs=dict(
-            num_epochs=1000,
-            num_eval_steps_per_epoch=5000,
+            num_epochs=10000,
+            num_eval_steps_per_epoch=1500,
             num_trains_per_train_loop=1000,
             num_expl_steps_per_train_loop=1000,
             min_num_steps_before_training=1000,
             max_path_length=1000,
             batch_size=256,
-            save_snapshot_freq=1,
+            save_snapshot_freq=100,
         ),
     )
 

@@ -39,7 +39,7 @@ def launch_experiment(
 ):
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--mode', type=str, default='multi_gpu',
+    parser.add_argument('--mode', type=str, default='local',
                         help='Mode for running the experiments - local: runs on local machine, '
                              'ec2: runs on AWS ec2 cluster (requires a proper configuration file)')
 
