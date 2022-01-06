@@ -52,13 +52,13 @@ class OnlineRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         self.training_mode(False)
         if self.min_num_steps_before_training > 0:
             for _ in range(self.min_num_steps_before_training):
-                s, a, r, d, ns, info = self.expl_data_collector.collect_one_step(
+                s, a, r, d, ns, info, env_state = self.expl_data_collector.collect_one_step(
                     self.max_path_length,
                     discard_incomplete_paths=False,
                 )
 
-                self.replay_buffer.add_sample(s, a, r, d, ns, env_info=info)
-                
+                self.replay_buffer.add_sample(s, a, r, d, ns, env_info=info, env_state = env_state)
+
             self.expl_data_collector.end_epoch(-1)
             gt.stamp('initial exploration', unique=False)
 
@@ -76,13 +76,13 @@ class OnlineRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
 
             for _ in range(self.num_train_loops_per_epoch):
                 for _ in range(self.num_expl_steps_per_train_loop):
-                    s, a, r, d, ns, info = self.expl_data_collector.collect_one_step(
+                    s, a, r, d, ns, info, env_state = self.expl_data_collector.collect_one_step(
                         self.max_path_length,
                         discard_incomplete_paths=False,
                     )
                     gt.stamp('exploration sampling', unique=False)
 
-                    self.replay_buffer.add_sample(s, a, r, d, ns, env_info=info)
+                    self.replay_buffer.add_sample(s, a, r, d, ns, env_info=info, env_state=env_state)
                     gt.stamp('data storing', unique=False)
 
                     self.training_mode(True)

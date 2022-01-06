@@ -62,7 +62,7 @@ def launch_experiment(
 
     """
     Generating experiment from specified functions:
-    
+
     If the user specifies experiment_class, it is assumed that if get_algorithm and/or
         get_offline_algorithm are specified, then they are located there. This is mostly
         just for backwards compatibility.
@@ -111,7 +111,7 @@ def launch_experiment(
         experiment_config=[experiment_config],
         exp_prefix=[exp_name],
         variant=variants,
-        gpu_kwargs=[{'mode': use_gpu if args.mode != 'ec2' else False,  # don't use GPU with EC2
+        gpu_kwargs=[{'mode': use_gpu,  # don't use GPU with EC2
                      'gpu_id': gpu_id}],
         log_to_wandb=[log_to_wandb],
     )

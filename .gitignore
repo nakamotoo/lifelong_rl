@@ -15,3 +15,4 @@ MUJOCO_LOG.TXT
 /video
 /wandb
 /tmp
+/visualize

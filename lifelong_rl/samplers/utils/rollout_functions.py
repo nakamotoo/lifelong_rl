@@ -179,6 +179,7 @@ def rollout_with_latent(
     agent_infos = []
     env_infos = []
     latents = []
+    env_states = []
     o = env.reset()
     agent.reset()
     next_o = None
@@ -197,6 +198,7 @@ def rollout_with_latent(
         agent_infos.append(agent_info)
         env_infos.append(env_info)
         latents.append(agent.get_current_latent())
+        env_states.append(env.sim.get_state())
         path_length += 1
         if d:
             break
@@ -226,4 +228,5 @@ def rollout_with_latent(
         agent_infos=agent_infos,
         env_infos=env_infos,
         latents=np.array(latents),
+        env_states = env_states
     )

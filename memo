@@ -1,0 +1,12 @@
+# 結果の可視化
+python viz_hist.py --snapshot=/data/local/mitsuhiko/lifelong_rl/itr_999 --env=HalfCheetah --end=1500 --output=visualize/test.mp4
+
+export PYTHONPATH=$PYTHONPATH:~/doodad
+
+
+===初期===
+pip install wandb
+pip install opencv-contrib-python
+
+pip uninstall numpy
+pip install numpy

@@ -3,10 +3,10 @@ from experiment_utils.launch_experiment import launch_experiment
 from experiment_configs.configs.dads.dads_config import get_config
 from experiment_configs.algorithms.batch import get_algorithm
 
-# ENV_NAME = 'Gridworld'
-ENV_NAME = 'Hopper'
+ENV_NAME = 'Gridworld'
+# ENV_NAME = 'Hopper'
 experiment_kwargs = dict(
-    exp_name='dads-hopper',
+    exp_name='dads-grid',
     num_seeds=1,
     instance_type='c4.4xlarge',
     use_gpu=True,
@@ -55,7 +55,7 @@ if __name__ == "__main__":
             num_expl_steps_per_train_loop=2000,
             min_num_steps_before_training=0,
             max_path_length=100,
-            save_snapshot_freq=100,
+            save_snapshot_freq=10,
         ),
     )
 

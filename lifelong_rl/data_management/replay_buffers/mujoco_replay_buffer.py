@@ -33,13 +33,20 @@ class MujocoReplayBuffer(EnvReplayBuffer):
         self.env_states = []
 
     def add_sample(self, observation, action, reward, terminal,
-                   next_observation, **kwargs):
+                   next_observation, env_state, **kwargs):
         self._body_xpos[self._top] = self.env.sim.data.body_xpos
         self._qpos[self._top] = self.env.sim.data.qpos
+        # if len(self.env_states) >= self.max_replay_buffer_size():
+        #     self.env_states[self._top] = self.env.sim.get_state()
+        # else:
+        #     self.env_states.append(copy.deepcopy(self.env.sim.get_state()))
         if len(self.env_states) >= self.max_replay_buffer_size():
-            self.env_states[self._top] = self.env.sim.get_state()
+            self.env_states[self._top] = env_state
         else:
-            self.env_states.append(copy.deepcopy(self.env.sim.get_state()))
+            self.env_states.append(copy.deepcopy(env_state))
+
+        # print(env_state, self.env_states)
+
         return super().add_sample(
             observation=observation,
             action=action,
@@ -50,6 +57,7 @@ class MujocoReplayBuffer(EnvReplayBuffer):
         )
 
     def get_snapshot(self):
+        # print("hoge", self.env.sim.get_state())
         snapshot = super().get_snapshot()
         snapshot.update(dict(
             body_xpos=self._body_xpos[:self._size],
