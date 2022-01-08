@@ -1,7 +1,7 @@
 from collections import deque, OrderedDict
 
 from lifelong_rl.util.eval_util import create_stats_ordered_dict
-from lifelong_rl.samplers.utils.rollout_functions import rollout_with_latent
+from lifelong_rl.samplers.utils.rollout_functions import rollout_with_latent, rollout_with_kbit_memory
 from lifelong_rl.samplers import rollout, multitask_rollout
 from lifelong_rl.samplers import PathCollector
 
@@ -15,6 +15,7 @@ class MdpPathCollector(PathCollector):
             max_num_epoch_paths_saved=None,
             render=False,
             render_kwargs=None,
+            latent_dim=None
     ):
         if render_kwargs is None:
             render_kwargs = {}
@@ -29,8 +30,10 @@ class MdpPathCollector(PathCollector):
         self._num_steps_total = 0
         self._num_paths_total = 0
 
+        self._latent_dim = latent_dim
+
     def rollout_function(self, *args, **kwargs):
-        return rollout(*args, **kwargs)
+        return rollout(latent_dim = self._latent_dim, *args, **kwargs)
 
     def reset_policy(self):
         self._policy.reset()
@@ -119,6 +122,30 @@ class LatentPathCollector(MdpPathCollector):
 
     def rollout_function(self, *args, **kwargs):
         return rollout_with_latent(sample_latent_every=self.sample_latent_every, *args, **kwargs)
+
+    def finish_path(self, path):
+        path['latent'] = self.prev_latent
+
+    def reset_policy(self):
+        super().reset_policy()
+        self._policy.fixed_latent = True
+        self._policy.sample_latent()
+        self.prev_latent = self._policy.get_current_latent()
+
+    def end_path_collection(self):
+        super().end_path_collection()
+        self._policy.fixed_latent = False
+        self._policy.sample_latent()
+
+class KbitMemoryPathCollector(MdpPathCollector):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.prev_latent = None
+        self.rollout_func = rollout_with_kbit_memory
+
+    def rollout_function(self, *args, **kwargs):
+        return rollout_with_kbit_memory(*args, **kwargs)
 
     def finish_path(self, path):
         path['latent'] = self.prev_latent

@@ -14,7 +14,7 @@ from lifelong_rl.envs.env_processor import make_env
 from lifelong_rl.envs.wrappers import ContinualLifelongEnv, FollowerEnv
 import lifelong_rl.torch.pytorch_util as ptu
 from lifelong_rl.envs.env_utils import get_dim
-from lifelong_rl.samplers.data_collector.path_collector import MdpPathCollector, LatentPathCollector
+from lifelong_rl.samplers.data_collector.path_collector import MdpPathCollector, LatentPathCollector, KbitMemoryPathCollector
 from lifelong_rl.samplers.data_collector.step_collector import MdpStepCollector, RFCollector, \
     GoalConditionedReplayStepCollector
 
@@ -84,6 +84,8 @@ def experiment(
     obs_dim = get_dim(expl_env.observation_space)
     action_dim = get_dim(expl_env.action_space)
 
+    print("obs_dim, action_dim =", obs_dim, action_dim)
+
     if env_infos['mujoco']:
         replay_buffer = MujocoReplayBuffer(variant['replay_buffer_size'], expl_env)
     else:
@@ -144,12 +146,25 @@ def experiment(
         )
     elif collector_type == 'rf':
         expl_path_collector = RFCollector(expl_env, exploration_policy)
+    elif collector_type == 'batch_kbit_memory':
+        expl_path_collector = KbitMemoryPathCollector(
+            env=expl_env,
+            policy=exploration_policy,
+        )
     else:
         raise NotImplementedError('collector_type of experiment not recognized')
 
     if collector_type == 'gcr':
         eval_path_collector = GoalConditionedReplayStepCollector(
             eval_env, config['evaluation_policy'], replay_buffer, variant['resample_goal_every'],
+        )
+    elif collector_type == 'batch_kbit_memory':
+        latent_dim = variant["policy_kwargs"]["latent_dim"]
+        print("collector_type == 'batch_kbit_memory':", latent_dim)
+        eval_path_collector = MdpPathCollector(
+            eval_env,
+            config['evaluation_policy'],
+            latent_dim = latent_dim
         )
     else:
         eval_path_collector = MdpPathCollector(
