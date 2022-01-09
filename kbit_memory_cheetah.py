@@ -27,16 +27,16 @@ if __name__ == "__main__":
             terminates=False,
         ),
         policy_kwargs=dict(
-            layer_size=512,
+            layer_size=1024,
             latent_dim=12,
         ),
         discriminator_kwargs=dict(
-            layer_size=512,
+            layer_size=1024,
             num_layers=2,
             restrict_input_size=0,
         ),
         trainer_kwargs=dict(
-            num_prior_samples=100,
+            num_prior_samples=256,
             num_discrim_updates=16,
             num_policy_updates=128,
             discrim_learning_rate=3e-4,
@@ -51,7 +51,7 @@ if __name__ == "__main__":
             soft_target_tau=5e-3,
         ),
         algorithm_kwargs=dict(
-            num_epochs=10000,
+            num_epochs=50000,
             num_eval_steps_per_epoch=1000,
             num_trains_per_train_loop=1,
             num_expl_steps_per_train_loop=2000,

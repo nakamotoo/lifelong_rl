@@ -30,7 +30,7 @@ class KbitMemoryTrainer(TorchTrainer):
             empowerment_horizon=1,       # Length of horizon for empowerment
             reward_scale=5.,             # Typically beneficial to multiply rewards
             restrict_input_size=0,       # If > 0, restrict input to discriminator
-            relabel_rewards=True,        # Whether or not to relabel the rewards of buffer
+            relabel_rewards=False,        # Whether or not to relabel the rewards of buffer
             train_every=1,               # How often to train when train is called
             reward_mode=None,            # Which reward function to use (default: contrastive)
     ):

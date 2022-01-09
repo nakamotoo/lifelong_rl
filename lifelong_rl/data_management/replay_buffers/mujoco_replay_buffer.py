@@ -31,9 +31,13 @@ class MujocoReplayBuffer(EnvReplayBuffer):
         self._qpos = np.zeros((max_replay_buffer_size, *self.qpos_shape))
 
         self.env_states = []
+        self.latents=[]
+        self.writes = []
+        self.next_latents = []
+        self.hidden_states = []
 
     def add_sample(self, observation, action, reward, terminal,
-                   next_observation, env_state, **kwargs):
+                   next_observation, env_state, latent, write, next_latent, hidden_state, **kwargs):
         self._body_xpos[self._top] = self.env.sim.data.body_xpos
         self._qpos[self._top] = self.env.sim.data.qpos
         # if len(self.env_states) >= self.max_replay_buffer_size():
@@ -42,11 +46,18 @@ class MujocoReplayBuffer(EnvReplayBuffer):
         #     self.env_states.append(copy.deepcopy(self.env.sim.get_state()))
         if len(self.env_states) >= self.max_replay_buffer_size():
             self.env_states[self._top] = env_state
+            self.latents[self._top] = latent
+            self.writes[self._top] = write
+            self.next_latents[self._top] = next_latent
+            self.hidden_states[self._top] = hidden_state
         else:
             self.env_states.append(copy.deepcopy(env_state))
+            self.latents.append(copy.deepcopy(latent))
+            self.writes.append(copy.deepcopy(write))
+            self.next_latents.append(copy.deepcopy(next_latent))
+            self.hidden_states.append(copy.deepcopy(hidden_state))
 
         # print(env_state, self.env_states)
-
         return super().add_sample(
             observation=observation,
             action=action,
@@ -63,6 +74,10 @@ class MujocoReplayBuffer(EnvReplayBuffer):
             body_xpos=self._body_xpos[:self._size],
             qpos=self._qpos[:self._size],
             env_states=self.env_states[:self._size],
+            latents=self.latents[:self._size],
+            writes=self.writes[:self._size],
+            next_latents=self.next_latents[:self._size],
+            hidden_states=self.hidden_states[:self._size],
         ))
         return snapshot
 
