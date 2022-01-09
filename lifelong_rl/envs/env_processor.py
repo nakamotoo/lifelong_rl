@@ -47,7 +47,15 @@ def make_env(env_name, terminates=True, **kwargs):
         from lifelong_rl.envs.environments.continuous_gridworld.cont_gridworld import ContinuousGridworld
         base_env = ContinuousGridworld
         env_infos['mujoco'] = False
-    
+
+    """
+    Partially Observable
+    """
+    if env_name == 'PartialHalfCheetah':
+        from lifelong_rl.envs.environments.cheetah_env import PartialHalfCheetahEnv
+        base_env = PartialHalfCheetahEnv
+        env_infos['mujoco'] = True
+
     if env is None and base_env is None:
         raise NameError('env_name not recognized')
 
