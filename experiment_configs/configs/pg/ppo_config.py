@@ -45,6 +45,7 @@ def get_config(
         final_init_scale=1,
     )
 
+    # memo これなぜeval env?
     trainer = PPOTrainer(
         env=eval_env,
         policy=policy,

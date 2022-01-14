@@ -103,6 +103,7 @@ def rollout(
     terminals = []
     agent_infos = []
     env_infos = []
+    env_states = []
     o = env.reset()
     agent.reset()
     next_o = None
@@ -120,6 +121,7 @@ def rollout(
         actions.append(a)
         agent_infos.append(agent_info)
         env_infos.append(env_info)
+        env_states.append(env.sim.get_state())
         path_length += 1
         if d:
             break
@@ -148,6 +150,7 @@ def rollout(
         terminals=np.array(terminals).reshape(-1, 1),
         agent_infos=agent_infos,
         env_infos=env_infos,
+        env_states = env_states
     )
 
 
@@ -263,6 +266,8 @@ def rollout_with_kbit_memory(
     if render:
         env.render(**render_kwargs)
     while path_length < max_path_length:
+        if path_length == 0:
+            agent.sample_latent()
         hidden_s = env._get_hidden_state()
         a, agent_info = agent.get_action(o)
         a, w = a[:-latent_dim], a[-latent_dim:] # split a into a_env and a_memory

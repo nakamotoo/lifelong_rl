@@ -1,12 +1,11 @@
 import torch
-import numpy as np
 
-from lifelong_rl.policies.base.kbit_memory_policy import KbitMemoryPolicy
+from lifelong_rl.policies.base.latent_prior_policy import PriorLatentPolicy
 from lifelong_rl.policies.models.gaussian_policy import TanhGaussianPolicy
 from lifelong_rl.models.networks import FlattenMlp
-from lifelong_rl.trainers.kbit_memory.kbit_memory import KbitMemoryTrainer
-from lifelong_rl.trainers.kbit_memory.state_predictor import StatePredictor
-from lifelong_rl.trainers.q_learning.sac import SACTrainer
+from lifelong_rl.trainers.dads.dads import DADSTrainer
+from lifelong_rl.trainers.dads.skill_dynamics import SkillDynamics
+from lifelong_rl.trainers.pg.ppo import PPOTrainer
 import lifelong_rl.torch.pytorch_util as ptu
 import lifelong_rl.util.pythonplusplus as ppp
 
@@ -28,40 +27,40 @@ def get_config(
     latent_dim = variant['policy_kwargs']['latent_dim']
     restrict_dim = variant['discriminator_kwargs']['restrict_input_size']
 
-    hidden_state_dim = expl_env.hidden_state_dim
-
-    print("obs_dim, action_dim, hidden_state_dim = ", obs_dim, action_dim, hidden_state_dim)
-
-    # rnn based policy pi (a | o)
     control_policy = TanhGaussianPolicy(
         obs_dim=obs_dim + latent_dim,
-        action_dim=action_dim + latent_dim,
+        action_dim=action_dim,
         hidden_sizes=[M, M],
         restrict_obs_dim=restrict_dim,
+        hidden_activation=torch.tanh,
+        b_init_value=0,
+        w_scale=1.41,
+        init_w=0.01,
+        final_init_scale=0.01,
+        std=0.5,
+        hidden_init=ptu.orthogonal_init,
     )
 
-    # k bit binary prior にする
-    # randomで初期化
-    # prior = torch.distributions.bernoulli.Bernoulli(torch.tensor([0.5]*latent_dim))
-    # 全部0で初期化
-    prior = torch.distributions.bernoulli.Bernoulli(ptu.from_numpy(np.array([0.0]*latent_dim)))
+    prior = torch.distributions.uniform.Uniform(
+        -ptu.ones(latent_dim), ptu.ones(latent_dim),
+    )
 
-    # prior = torch.distributions.uniform.Uniform(
-    #     -ptu.ones(latent_dim), ptu.ones(latent_dim),
-    # )
-
-    policy = KbitMemoryPolicy(
+    policy = PriorLatentPolicy(
         policy=control_policy,
         prior=prior,
-        latent_dim=latent_dim
+        unconditional=True,
     )
 
-    qf1, qf2, target_qf1, target_qf2 = ppp.group_init(
-        4,
-        FlattenMlp,
-        input_size=obs_dim + latent_dim + action_dim + latent_dim,
+    # M = variant['value_kwargs']['layer_size']
+
+    value_func = FlattenMlp(
+        input_size=obs_dim + latent_dim,
         output_size=1,
         hidden_sizes=[M, M],
+        hidden_activation=torch.tanh,
+        hidden_init=ptu.orthogonal_init,
+        b_init_value=0,
+        final_init_scale=1,
     )
 
     """
@@ -69,10 +68,10 @@ def get_config(
     """
 
     discrim_kwargs = variant['discriminator_kwargs']
-    discriminator = StatePredictor(
-        observation_size=obs_dim,
+    discriminator = SkillDynamics(
+        observation_size=obs_dim if restrict_dim == 0 else restrict_dim,
+        action_size=action_dim,
         latent_size=latent_dim,
-        hidden_state_size = hidden_state_dim,
         normalize_observations=discrim_kwargs.get('normalize_observations', True),
         fix_variance=discrim_kwargs.get('fix_variance', True),
         fc_layer_params=[discrim_kwargs['layer_size']] * discrim_kwargs['num_layers'],
@@ -82,24 +81,31 @@ def get_config(
     Policy trainer
     """
 
-    policy_trainer = SACTrainer(
+    policy_trainer = PPOTrainer(
         env=expl_env,
         policy=control_policy,
-        qf1=qf1,
-        qf2=qf2,
-        target_qf1=target_qf1,
-        target_qf2=target_qf2,
+        value_func=value_func,
         **variant['policy_trainer_kwargs'],
     )
 
-    trainer = KbitMemoryTrainer(
+    """
+    Setup of intrinsic control
+    """
+
+    dads_type = variant.get('dads_type', 'onpolicy')
+    if dads_type == 'onpolicy':
+        trainer_class = DADSTrainer
+    else:
+        raise NotImplementedError('dads_type not recognized')
+
+    trainer = trainer_class(
         control_policy=control_policy,
         discriminator=discriminator,
         replay_buffer=replay_buffer,
         replay_size=variant['generated_replay_buffer_size'],
         policy_trainer=policy_trainer,
         restrict_input_size=restrict_dim,
-        hidden_state_dim = hidden_state_dim,
+        algorithm = variant["algorithm"],
         **variant['trainer_kwargs'],
     )
 

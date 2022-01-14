@@ -68,7 +68,7 @@ class PGTrainer(TorchTrainer):
         self._need_to_update_eval_statistics = True
         self.eval_statistics = OrderedDict()
 
-    def train_from_paths(self, paths):
+    def train_from_paths(self, paths, mode=None):
 
         """
         Path preprocessing; have to copy so we don't modify when paths are used elsewhere
@@ -77,11 +77,12 @@ class PGTrainer(TorchTrainer):
         paths = copy.deepcopy(paths)
         for path in paths:
             # Other places like to have an extra dimension so that all arrays are 2D
-            path['terminals'] = np.squeeze(path['terminals'], axis=-1)
             path['rewards'] = np.squeeze(path['rewards'], axis=-1)
+            path['terminals'] = np.squeeze(path['terminals'], axis=-1)
 
-            # Reward normalization; divide by std of reward in replay buffer
-            path['rewards'] = np.clip(path['rewards'] / (self._reward_std + 1e-3), -10, 10)
+            if mode is None:
+                # Reward normalization; divide by std of reward in replay buffer
+                path['rewards'] = np.clip(path['rewards'] / (self._reward_std + 1e-3), -10, 10)
 
         obs, actions = [], []
         for path in paths:
@@ -91,7 +92,6 @@ class PGTrainer(TorchTrainer):
         actions = np.concatenate(actions, axis=0)
 
         obs_tensor, act_tensor = ptu.from_numpy(obs), ptu.from_numpy(actions)
-
         """
         Policy training loop
         """
@@ -101,6 +101,9 @@ class PGTrainer(TorchTrainer):
             log_probs_old = old_policy.get_log_probs(obs_tensor, act_tensor).squeeze(dim=-1)
 
         rem_value_epochs = self.num_epochs
+
+        num_p = 0
+        num_v = 0
         for epoch in range(self.num_policy_epochs):
 
             """
@@ -144,6 +147,7 @@ class PGTrainer(TorchTrainer):
                         actions=actions,
                         advantages=advantages,
                     )
+                num_p += 1
                 policy_loss, kl = self.train_policy(batch, old_policy)
 
             with torch.no_grad():
@@ -163,6 +167,7 @@ class PGTrainer(TorchTrainer):
                     targets=returns,
                 )
                 value_loss = self.train_value(batch)
+                num_v += 1
             rem_value_epochs -= 1
 
         # Ensure the value function is always updated for the maximum number

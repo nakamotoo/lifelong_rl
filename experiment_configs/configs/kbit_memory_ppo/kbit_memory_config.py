@@ -6,7 +6,7 @@ from lifelong_rl.policies.models.gaussian_policy import TanhGaussianPolicy
 from lifelong_rl.models.networks import FlattenMlp
 from lifelong_rl.trainers.kbit_memory.kbit_memory import KbitMemoryTrainer
 from lifelong_rl.trainers.kbit_memory.state_predictor import StatePredictor
-from lifelong_rl.trainers.q_learning.sac import SACTrainer
+from lifelong_rl.trainers.pg.ppo import PPOTrainer
 import lifelong_rl.torch.pytorch_util as ptu
 import lifelong_rl.util.pythonplusplus as ppp
 
@@ -32,12 +32,18 @@ def get_config(
 
     print("obs_dim, action_dim, hidden_state_dim = ", obs_dim, action_dim, hidden_state_dim)
 
-    # rnn based policy pi (a | o)
     control_policy = TanhGaussianPolicy(
         obs_dim=obs_dim + latent_dim,
         action_dim=action_dim + latent_dim,
         hidden_sizes=[M, M],
         restrict_obs_dim=restrict_dim,
+        hidden_activation=torch.tanh,
+        b_init_value=0,
+        w_scale=1.41,
+        init_w=0.01,
+        final_init_scale=0.01,
+        std=0.5,
+        hidden_init=ptu.orthogonal_init,
     )
 
     # k bit binary prior にする
@@ -53,17 +59,18 @@ def get_config(
     policy = KbitMemoryPolicy(
         policy=control_policy,
         prior=prior,
-        latent_dim=latent_dim
+        latent_dim=latent_dim,
     )
 
-    qf1, qf2, target_qf1, target_qf2 = ppp.group_init(
-        4,
-        FlattenMlp,
-        input_size=obs_dim + latent_dim + action_dim + latent_dim,
+    value_func = FlattenMlp(
+        input_size=obs_dim + latent_dim,
         output_size=1,
         hidden_sizes=[M, M],
+        hidden_activation=torch.tanh,
+        hidden_init=ptu.orthogonal_init,
+        b_init_value=0,
+        final_init_scale=1,
     )
-
     """
     Discriminator
     """
@@ -82,13 +89,10 @@ def get_config(
     Policy trainer
     """
 
-    policy_trainer = SACTrainer(
+    policy_trainer = PPOTrainer(
         env=expl_env,
         policy=control_policy,
-        qf1=qf1,
-        qf2=qf2,
-        target_qf1=target_qf1,
-        target_qf2=target_qf2,
+        value_func=value_func,
         **variant['policy_trainer_kwargs'],
     )
 
@@ -100,6 +104,7 @@ def get_config(
         policy_trainer=policy_trainer,
         restrict_input_size=restrict_dim,
         hidden_state_dim = hidden_state_dim,
+        algorithm = variant["algorithm"],
         **variant['trainer_kwargs'],
     )
 

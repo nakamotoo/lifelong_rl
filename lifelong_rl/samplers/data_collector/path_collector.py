@@ -19,7 +19,6 @@ class MdpPathCollector(PathCollector):
     ):
         if render_kwargs is None:
             render_kwargs = {}
-
         self._env = env
         self._policy = policy
         self._max_num_epoch_paths_saved = max_num_epoch_paths_saved
