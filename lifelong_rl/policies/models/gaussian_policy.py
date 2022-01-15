@@ -97,23 +97,16 @@ class TanhGaussianPolicy(Mlp, ExplorationPolicy):
 
         h = obs
         for i, fc in enumerate(self.fcs):
-            h = fc(h)
-            # print("fuga fc", i, h)
-            h = self.hidden_activation(h)
-            # print("fuga activation", i, h)
-            # h = self.hidden_activation(fc(h))
+            h = self.hidden_activation(fc(h))
         mean = self.last_fc(h)
-        # print("fuga mean", mean)
+
         if self.std is None:
             log_std = self.last_fc_log_std(h)
             log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
             std = torch.exp(log_std)
         else:
-            # print("self.log_std", self.log_std)
             log_std = self.log_std * ptu.ones(*mean.shape)
-            # print("log_std 1", log_std)
             log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
-            # print("log_std 2", log_std)
             std = log_std.exp()
 
         log_prob = None
