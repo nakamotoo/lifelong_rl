@@ -32,7 +32,7 @@ def get_config(
 
     print("obs_dim, action_dim, hidden_state_dim = ", obs_dim, action_dim, hidden_state_dim)
 
-    # rnn based policy pi (a | o)
+    # pi (a, w | o, m)
     control_policy = TanhGaussianPolicy(
         obs_dim=obs_dim + latent_dim,
         action_dim=action_dim + latent_dim,
