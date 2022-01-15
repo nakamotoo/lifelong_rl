@@ -37,7 +37,7 @@ class PGTrainer(TorchTrainer):
             value_batch_size=1024,      # Batch size for value function training
             normalize_advantages=True,  # Optionally, can normalize advantages
             input_normalization=True,   # Whether or not to normalize the inputs to policy & value
-            max_grad_norm=10,           # Gradient norm clipping
+            max_grad_norm=0.5,           # Gradient norm clipping
             action_dim=None,
     ):
         super().__init__()
@@ -148,13 +148,15 @@ class PGTrainer(TorchTrainer):
                         advantages=advantages,
                     )
                 num_p += 1
+
                 policy_loss, kl = self.train_policy(batch, old_policy)
 
             with torch.no_grad():
                 log_probs = self.policy.get_log_probs(obs_tensor, act_tensor).squeeze(dim=-1)
             kl = (log_probs_old - log_probs).mean()
 
-            if (self.target_kl is not None and kl > 1.5 * self.target_kl) or (kl != kl):
+            # もともとabs(kl)ではなかったけど、マイナスに行きすぎても嫌なのでabs加える
+            if (self.target_kl is not None and abs(kl) > 1.5 * self.target_kl) or (kl != kl):
                 if epoch > 0 or kl != kl:  # nan check
                     self.policy.set_param_values(old_params)
                 break
@@ -193,6 +195,9 @@ class PGTrainer(TorchTrainer):
             value_loss = errors ** 2
 
             self.eval_statistics['Num Epochs'] = epoch + 1
+
+            print("Policy Loss:", ptu.get_numpy(policy_loss).mean())
+            print(ptu.get_numpy(policy_loss))
 
             self.eval_statistics['Policy Loss'] = ptu.get_numpy(policy_loss).mean()
             self.eval_statistics['KL Divergence'] = ptu.get_numpy(kl).mean()

@@ -4,8 +4,9 @@ from experiment_configs.configs.kbit_memory_ppo.kbit_memory_config import get_co
 from experiment_configs.algorithms.batch import get_algorithm
 import os
 
-num_epochs = 1
+num_epochs = 8
 layer_size = 1024
+horizon = int(2000)
 
 # ENV_NAME = 'Gridworld'
 ENV_NAME = 'PartialHalfCheetah'
@@ -22,8 +23,8 @@ if __name__ == "__main__":
     variant = dict(
         algorithm='Kbit-Memory-PPO',
         collector_type='batch_kbit_memory',
-        replay_buffer_size=int(5000),   # for DADS, only used to store past history
-        generated_replay_buffer_size=int(5000),   # off-policy replay buffer helps learning
+        replay_buffer_size=horizon,   # for DADS, only used to store past history
+        generated_replay_buffer_size=horizon,   # off-policy replay buffer helps learning
         env_name=ENV_NAME,
         env_kwargs=dict(
             # grid_files=['blank'],  # specifies which file to load for gridworld
@@ -40,7 +41,7 @@ if __name__ == "__main__":
         ),
         trainer_kwargs=dict(
             num_prior_samples=256,
-            num_discrim_updates=16,
+            num_discrim_updates=8,
             num_policy_updates=num_epochs,
             discrim_learning_rate=3e-4,
             policy_batch_size=512,
@@ -50,20 +51,20 @@ if __name__ == "__main__":
         policy_trainer_kwargs=dict(
             discount=0.99,
             gae_lambda=0.97,
-            ppo_epsilon=0.2,
-            policy_lr=3e-4,
-            value_lr=3e-4,
-            target_kl=None,
+            ppo_epsilon=0.1,
+            policy_lr=3e-5,
+            value_lr=3e-5,
+            target_kl=0.01,
             num_epochs=num_epochs,
-            policy_batch_size=256,
-            value_batch_size=256,
+            policy_batch_size=512,
+            value_batch_size=512,
             normalize_advantages=True,
         ),
         algorithm_kwargs=dict(
             num_epochs=50000,
             num_eval_steps_per_epoch=1000,
             num_trains_per_train_loop=1,
-            num_expl_steps_per_train_loop=5000,
+            num_expl_steps_per_train_loop=horizon,
             min_num_steps_before_training=0,
             max_path_length=200,
             save_snapshot_freq=50,

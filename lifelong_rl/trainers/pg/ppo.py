@@ -2,6 +2,8 @@ import torch
 
 from lifelong_rl.trainers.pg.pg import PGTrainer
 
+import sys
+
 
 class PPOTrainer(PGTrainer):
 
@@ -27,7 +29,14 @@ class PPOTrainer(PGTrainer):
         ratio = torch.exp(log_probs - log_probs_old)
         policy_loss_1 = advantages * ratio
         policy_loss_2 = advantages * torch.clamp(ratio, 1-self.ppo_epsilon, 1+self.ppo_epsilon)
-        objective = torch.min(policy_loss_1, policy_loss_2).mean()
+
+        if torch.any(torch.isnan(ratio)):
+            print("ratio is nan...")
+            sys.exit()
+
+
+        # objective = torch.min(policy_loss_1, policy_loss_2).mean()
+        objective = policy_loss_2.mean() # policy_loss_1に -inf が入ったりするので、policy_loss_2を使用するように変更した
         objective += self.entropy_coeff * (-log_probs).mean()
 
         kl = (log_probs_old - log_probs).mean()
