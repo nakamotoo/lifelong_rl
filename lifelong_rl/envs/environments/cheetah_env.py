@@ -12,7 +12,7 @@ class PartialHalfCheetahEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         utils.EzPickle.__init__(self)
 
         if hidden_state == "vel":
-            self.hidden_state_dim = self.sim.data.qpos.shape[0]
+            self.hidden_state_dim = self.sim.data.qvel.shape[0]
 
 
     def step(self, action):
