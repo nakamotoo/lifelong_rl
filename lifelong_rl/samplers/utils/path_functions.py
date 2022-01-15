@@ -59,6 +59,7 @@ def calculate_advantages(paths, discount, gae_lambda=None, normalize=False):
 def discount_cumsum(x, dones, gamma):
     discount_cumsum = np.zeros_like(x)
     discount_cumsum[-1] = x[-1]
+
     for t in reversed(range(x.shape[0]-1)):
         discount_cumsum[t] = x[t] + gamma * discount_cumsum[t+1] * (1-dones[t])
     return discount_cumsum

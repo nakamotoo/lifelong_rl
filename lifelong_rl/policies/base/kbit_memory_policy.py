@@ -17,6 +17,7 @@ class KbitMemoryPolicy(ExplorationPolicy):
         self.fixed_latent = False
         self._last_latent = None
         self._latent_dim = latent_dim
+        self.sample_latent()
 
     def set_latent(self, latent):
         self._last_latent = latent
@@ -34,6 +35,7 @@ class KbitMemoryPolicy(ExplorationPolicy):
         state = ptu.from_numpy(state)
         sz = torch.cat((state, latent))
         action, *_ = self.policy.forward(sz)
+        action = torch.squeeze(action) # ppoの場合actionが二次元になってしまうから
         return ptu.get_numpy(action), dict()
 
     def write_memory(self, write):

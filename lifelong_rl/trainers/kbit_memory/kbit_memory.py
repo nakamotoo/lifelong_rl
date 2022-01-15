@@ -33,6 +33,7 @@ class KbitMemoryTrainer(TorchTrainer):
             relabel_rewards=True,        # Whether or not to relabel the rewards of buffer
             train_every=1,               # How often to train when train is called
             reward_mode=None,            # Which reward function to use (default: contrastive)
+            algorithm = None
     ):
         super().__init__()
 
@@ -69,7 +70,12 @@ class KbitMemoryTrainer(TorchTrainer):
         self._next_latents = np.zeros((replay_size, self.latent_dim))
         self._actions = np.zeros((replay_size, self.action_dim + self.latent_dim)) # ここんのactionはa+w
         self._rewards = np.zeros((replay_size, 1))
-        self._logprobs = np.zeros((replay_size, 1))
+        self._terminals = np.zeros((replay_size, 1))
+        if control_policy.std is None:
+            self._logprobs = np.zeros((replay_size, 1))
+        else:
+            # TODO: この200はmax_path_lengthを渡すようにfixすべし
+            self._logprobs = np.zeros((replay_size, 200, 1))
         self._ptr = 0
         self.replay_size = replay_size
         self._cur_replay_size = 0
@@ -83,14 +89,18 @@ class KbitMemoryTrainer(TorchTrainer):
 
         self.train_every = train_every
         self._train_calls = 0
+        self._algorithm = algorithm
+        print("kbit_memory, algorithm", algorithm)
 
-    def add_sample(self, obs, hidden_s, true_next_obs, action, latent, next_latent, logprob=None, **kwargs):
+
+    def add_sample(self, obs, hidden_s, true_next_obs, action, latent, next_latent, logprob=None, terminal=None,  **kwargs):
         self._obs[self._ptr] = obs
         self._hidden_states[self._ptr] = hidden_s
         self._true_next_obs[self._ptr] = true_next_obs
         self._actions[self._ptr] = action
         self._latents[self._ptr] = latent
         self._next_latents[self._ptr] = next_latent
+        self._terminals[self._ptr] = terminal
 
         if logprob is not None:
             self._logprobs[self._ptr] = logprob
@@ -128,7 +138,6 @@ class KbitMemoryTrainer(TorchTrainer):
         return rewards, dict()
 
     def train_from_paths(self, paths, train_discrim=True, train_policy=True):
-
         """
         Reading new paths: append latent to state
         Note that is equivalent to on-policy when latent buffer size = sum of paths length
@@ -146,6 +155,7 @@ class KbitMemoryTrainer(TorchTrainer):
             latents = path['latents']
             next_latents = path['next_latents']
             path_len = len(obs) - self.empowerment_horizon + 1
+            terminals = path['terminals']
 
             obs_latents = np.concatenate([obs, latents], axis=-1)
             actions_writes = np.concatenate([actions, writes], axis=-1)
@@ -165,6 +175,7 @@ class KbitMemoryTrainer(TorchTrainer):
                     latents[t],
                     next_latents[t],
                     logprob=log_probs[t],
+                    terminal = terminals[t]
                 )
 
                 epoch_obs.append(obs[t:t+1])
@@ -252,16 +263,26 @@ class KbitMemoryTrainer(TorchTrainer):
         next_state_latents = np.concatenate(
             [self._true_next_obs, self._next_latents], axis=-1)[:self._cur_replay_size]
 
-        for _ in range(self.num_policy_updates):
-            batch = ppp.sample_batch(
-                self.policy_batch_size,
-                observations=state_latents,
-                next_observations=next_state_latents,
-                actions=self._actions[:self._cur_replay_size],
-                rewards=self._rewards[:self._cur_replay_size],
-            )
-            batch = ptu.np_to_pytorch_batch(batch)
-            self.policy_trainer.train_from_torch(batch)
+        if self._algorithm is not None and 'PPO' in self._algorithm:
+            ppo_paths = [{
+                "observations": state_latents,
+                "next_observations": next_state_latents,
+                "actions": self._actions[:self._cur_replay_size],
+                "rewards": self._rewards[:self._cur_replay_size],
+                "terminals": self._terminals[:self._cur_replay_size],
+            }]
+            self.policy_trainer.train_from_paths(ppo_paths, mode="dads")
+        else:
+            for _ in range(self.num_policy_updates):
+                batch = ppp.sample_batch(
+                    self.policy_batch_size,
+                    observations=state_latents,
+                    next_observations=next_state_latents,
+                    actions=self._actions[:self._cur_replay_size],
+                    rewards=self._rewards[:self._cur_replay_size],
+                )
+                batch = ptu.np_to_pytorch_batch(batch)
+                self.policy_trainer.train_from_torch(batch)
 
         gt.stamp('policy training', unique=False)
 

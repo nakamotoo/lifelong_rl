@@ -7,6 +7,7 @@ MANIFEST
 \.idea/
 /.idea
 MUJOCO_LOG.TXT
+*.ipynb
 
 # Misc lifelong_rl directories
 /agent_data
@@ -16,3 +17,4 @@ MUJOCO_LOG.TXT
 /wandb
 /tmp
 /visualize
+/.ipynb_checkpoints

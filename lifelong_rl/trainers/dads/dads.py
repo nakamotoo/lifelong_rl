@@ -37,6 +37,7 @@ class DADSTrainer(TorchTrainer):
             relabel_rewards=True,        # Whether or not to relabel the rewards of buffer
             train_every=1,               # How often to train when train is called
             reward_mode=None,            # Which reward function to use (default: contrastive)
+            algorithm = None
     ):
         super().__init__()
 
@@ -59,6 +60,8 @@ class DADSTrainer(TorchTrainer):
         self.restrict_input_size = restrict_input_size
         self.relabel_rewards = relabel_rewards
         self.reward_mode = reward_mode
+        self._algorithm = algorithm
+        print("dads, algorithm", algorithm)
 
         self.discrim_optim = torch.optim.Adam(
             discriminator.parameters(), lr=discrim_learning_rate, betas=(0, 0.9),
@@ -70,7 +73,12 @@ class DADSTrainer(TorchTrainer):
         self._latents = np.zeros((replay_size, self.latent_dim))
         self._actions = np.zeros((replay_size, self.action_dim))
         self._rewards = np.zeros((replay_size, 1))
-        self._logprobs = np.zeros((replay_size, 1))
+        self._terminals = np.zeros((replay_size, 1))
+        if control_policy.std is None:
+            self._logprobs = np.zeros((replay_size, 1))
+        else:
+            # TODO: この200はmax_path_lengthを渡すようにfixすべし
+            self._logprobs = np.zeros((replay_size, 200, 1))
         self._ptr = 0
         self.replay_size = replay_size
         self._cur_replay_size = 0
@@ -85,7 +93,7 @@ class DADSTrainer(TorchTrainer):
         self.train_every = train_every
         self._train_calls = 0
 
-    def add_sample(self, obs, next_obs, true_next_obs, action, latent, logprob=None, **kwargs):
+    def add_sample(self, obs, next_obs, true_next_obs, action, latent, logprob=None, terminal=None, **kwargs):
         self._obs[self._ptr] = obs
         self._next_obs[self._ptr] = next_obs
         self._true_next_obs[self._ptr] = true_next_obs
@@ -93,6 +101,7 @@ class DADSTrainer(TorchTrainer):
         # print("obs!", obs,)
         # print("nextobs!", next_obs)
         self._latents[self._ptr] = latent
+        self._terminals[self._ptr] = terminal
 
         if logprob is not None:
             self._logprobs[self._ptr] = logprob
@@ -130,12 +139,10 @@ class DADSTrainer(TorchTrainer):
         return rewards, dict()
 
     def train_from_paths(self, paths, train_discrim=True, train_policy=True):
-
         """
         Reading new paths: append latent to state
         Note that is equivalent to on-policy when latent buffer size = sum of paths length
         """
-
         epoch_obs, epoch_next_obs, epoch_latents = [], [], []
 
         for path in paths:
@@ -143,6 +150,7 @@ class DADSTrainer(TorchTrainer):
             next_obs = path['next_observations']
             actions = path['actions']
             latents = path.get('latents', None)
+            terminals = path['terminals']
             path_len = len(obs) - self.empowerment_horizon + 1
 
             obs_latents = np.concatenate([obs, latents], axis=-1)
@@ -160,6 +168,7 @@ class DADSTrainer(TorchTrainer):
                     actions[t],
                     latents[t],
                     logprob=log_probs[t],
+                    terminal = terminals[t]
                 )
 
                 epoch_obs.append(obs[t:t+1])
@@ -295,16 +304,26 @@ class DADSTrainer(TorchTrainer):
         next_state_latents = np.concatenate(
             [self._true_next_obs, self._latents], axis=-1)[:self._cur_replay_size]
 
-        for _ in range(self.num_policy_updates):
-            batch = ppp.sample_batch(
-                self.policy_batch_size,
-                observations=state_latents,
-                next_observations=next_state_latents,
-                actions=self._actions[:self._cur_replay_size],
-                rewards=self._rewards[:self._cur_replay_size],
-            )
-            batch = ptu.np_to_pytorch_batch(batch)
-            self.policy_trainer.train_from_torch(batch)
+        if self._algorithm is not None and 'PPO' in self._algorithm:
+            ppo_paths = [{
+                "observations": state_latents,
+                "next_observations": next_state_latents,
+                "actions": self._actions[:self._cur_replay_size],
+                "rewards": self._rewards[:self._cur_replay_size],
+                "terminals": self._terminals[:self._cur_replay_size],
+            }]
+            self.policy_trainer.train_from_paths(ppo_paths, mode="dads")
+        else:
+            for _ in range(self.num_policy_updates):
+                batch = ppp.sample_batch(
+                    self.policy_batch_size,
+                    observations=state_latents,
+                    next_observations=next_state_latents,
+                    actions=self._actions[:self._cur_replay_size],
+                    rewards=self._rewards[:self._cur_replay_size],
+                )
+                batch = ptu.np_to_pytorch_batch(batch)
+                self.policy_trainer.train_from_torch(batch)
 
         gt.stamp('policy training', unique=False)
 
