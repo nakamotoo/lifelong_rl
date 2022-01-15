@@ -64,7 +64,7 @@ class DADSTrainer(TorchTrainer):
         print("dads, algorithm", algorithm)
 
         self.discrim_optim = torch.optim.Adam(
-            discriminator.parameters(), lr=discrim_learning_rate, betas=(0, 0.9),
+            discriminator.parameters(), lr=discrim_learning_rate,
         )
 
         self._obs = np.zeros((replay_size, self.obs_dim))
