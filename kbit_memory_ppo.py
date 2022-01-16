@@ -5,13 +5,14 @@ from experiment_configs.algorithms.batch import get_algorithm
 import os
 
 num_epochs = 8
-layer_size = 1024
+policy_layer_size = 512
+discrim_layer_size = 512
 horizon = int(2000)
 
 # ENV_NAME = 'Gridworld'
 ENV_NAME = 'PartialHalfCheetah'
 experiment_kwargs = dict(
-    exp_name='kbit-memory-ppo-cheetah-{}'.format(str(layer_size)),
+    exp_name='kbit-memory-ppo-cheetah-p{}-d{}'.format(str(policy_layer_size), str(discrim_layer_size)),
     num_seeds=1,
     instance_type='c4.4xlarge',
     use_gpu=True,
@@ -31,11 +32,11 @@ if __name__ == "__main__":
             terminates=False,
         ),
         policy_kwargs=dict(
-            layer_size=layer_size,
+            layer_size=policy_layer_size,
             latent_dim=12,
         ),
         discriminator_kwargs=dict(
-            layer_size=layer_size,
+            layer_size=discrim_layer_size,
             num_layers=2,
             restrict_input_size=0,
         ),
@@ -61,7 +62,7 @@ if __name__ == "__main__":
             normalize_advantages=True,
         ),
         algorithm_kwargs=dict(
-            num_epochs=50000,
+            num_epochs=20000,
             num_eval_steps_per_epoch=1000,
             num_trains_per_train_loop=1,
             num_expl_steps_per_train_loop=horizon,

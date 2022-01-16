@@ -4,13 +4,13 @@ from experiment_configs.configs.kbit_memory.kbit_memory_config import get_config
 from experiment_configs.algorithms.batch import get_algorithm
 import os
 
-layer_size = 128
+layer_size = 1024
 latent_dim = 12
 
 # ENV_NAME = 'Gridworld'
 ENV_NAME = 'PartialHalfCheetah'
 experiment_kwargs = dict(
-    exp_name='kbit-memory-cheetah-{}-{}'.format(str(latent_dim), str(layer_size)),
+    exp_name='kbit-memory-cheetah-sac-{}'.format(str(layer_size)),
     num_seeds=1,
     instance_type='c4.4xlarge',
     use_gpu=True,
@@ -39,11 +39,11 @@ if __name__ == "__main__":
             restrict_input_size=0,
         ),
         trainer_kwargs=dict(
-            num_prior_samples=256,
-            num_discrim_updates=8,
-            num_policy_updates=64,
+            num_prior_samples=500,
+            num_discrim_updates=16,
+            num_policy_updates=128,
             discrim_learning_rate=3e-4,
-            policy_batch_size=256,
+            policy_batch_size=512,
             reward_bounds=(-50, 50),
             reward_scale=1,  # increasing reward scale helps learning signal
         ),

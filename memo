@@ -1,5 +1,5 @@
 # 結果の可視化
-python viz_hist.py --snapshot=/data/local/mitsuhiko/lifelong_rl/itr_999 --env=HalfCheetah --end=1500 --output=visualize/test.mp4
+python viz_hist.py --env=HalfCheetah --end=1000 --output=visualize/test.mp4 --snapshot=/data/local/mitsuhiko/lifelong_rl/itr_999
 
 export PYTHONPATH=$PYTHONPATH:~/doodad
 

@@ -6,13 +6,14 @@ import os
 
 
 num_epochs = 8
-layer_size = 512
+policy_layer_size = 512
+discrim_layer_size = 256
 horizon = int(2000)
 
 # ENV_NAME = 'Gridworld'
 ENV_NAME = 'HalfCheetah'
 experiment_kwargs = dict(
-    exp_name='dads-ppo-cheetah-{}'.format(str(layer_size)),
+    exp_name='dads-ppo-cheetah-p{}-d{}'.format(str(policy_layer_size), str(discrim_layer_size)),
     num_seeds=1,
     instance_type='c4.4xlarge',
     use_gpu=True,
@@ -20,7 +21,7 @@ experiment_kwargs = dict(
 
 
 if __name__ == "__main__":
-    os.environ["CUDA_VISIBLE_DEVICES"]='2'
+    os.environ["CUDA_VISIBLE_DEVICES"]='0'
     variant = dict(
         algorithm='DADS-PPO',
         collector_type='batch_latent',
@@ -32,16 +33,16 @@ if __name__ == "__main__":
             terminates=False,
         ),
         policy_kwargs=dict(
-            layer_size=layer_size,
+            layer_size=policy_layer_size,
             latent_dim=2,
         ),
         discriminator_kwargs=dict(
-            layer_size=layer_size,
+            layer_size=discrim_layer_size,
             num_layers=2,
             restrict_input_size=0,
         ),
         trainer_kwargs=dict(
-            num_prior_samples=100,
+            num_prior_samples=500,
             num_discrim_updates=8,
             num_policy_updates=num_epochs,
             discrim_learning_rate=3e-4,
@@ -53,8 +54,8 @@ if __name__ == "__main__":
             discount=0.99,
             gae_lambda=0.97,
             ppo_epsilon=0.1,
-            policy_lr=3e-5,
-            value_lr=3e-5,
+            policy_lr=1e-4,
+            value_lr=1e-4,
             target_kl=0.01,
             num_epochs=num_epochs,
             policy_batch_size=512,
@@ -62,7 +63,7 @@ if __name__ == "__main__":
             normalize_advantages=True,
         ),
         algorithm_kwargs=dict(
-            num_epochs=50000,
+            num_epochs=20000,
             num_eval_steps_per_epoch=1000,
             num_trains_per_train_loop=1,
             num_expl_steps_per_train_loop=horizon,
