@@ -281,10 +281,12 @@ def rollout_with_kbit_memory(
         env_infos.append(env_info)
         latents.append(agent.get_current_latent())
         # kbit memory を書き換える m_t → m_t+1
+        writes.append(w) # pathに保存するwritesを連続値のままに
+
         write = np.where(w <= 0.0, 0.0, 1.0)
         next_m = agent.write_memory(write)
         next_latents.append(next_m)
-        writes.append(write)
+        # writes.append(write)
 
         env_states.append(env.sim.get_state())
         path_length += 1
