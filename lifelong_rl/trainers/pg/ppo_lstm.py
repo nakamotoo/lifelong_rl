@@ -1,5 +1,7 @@
-import numpy as np
 import torch
+
+from lifelong_rl.trainers.pg.pg import PGTrainer
+import numpy as np
 import torch.optim as optim
 
 from collections import OrderedDict
@@ -11,64 +13,55 @@ from lifelong_rl.util.eval_util import create_stats_ordered_dict
 from lifelong_rl.core.rl_algorithms.torch_rl_algorithm import TorchTrainer
 import lifelong_rl.samplers.utils.path_functions as path_functions
 import lifelong_rl.util.pythonplusplus as ppp
+import sys
 
 
-class PGTrainer(TorchTrainer):
+class PPOLSTMTrainer(PGTrainer):
 
     """
-    Encapsulating base trainer for policy gradient methods trained from trajectories.
-    By itself, trains using vanilla policy gradient with some tricks (GAE, early stopping, etc).
+    Proximal Policy Optimization (Schulman et al. 2016).
+    Policy gradient algorithm with clipped surrogate loss.
     """
 
     def __init__(
             self,
-            env,                        # Associated environment
-            policy,                     # Associated policy
-            value_func,                 # Associated value function V(s)
-            discount=0.99,              # Discount factor
-            gae_lambda=0.95,            # Lambda to use for GAE for value estimation
-            policy_lr=1e-3,             # Learning rate for policy
-            value_lr=1e-3,              # Learning rate for value function
-            target_kl=0.01,             # Can do early termination if KL is reached
-            entropy_coeff=0.,           # Coefficient of entropy bonus
-            num_epochs=10,              # Number of epochs for training per train call
-            num_policy_epochs=None,     # Number of epochs for policy (can be < num_epochs)
-            policy_batch_size=1024,     # Batch size for policy training
-            value_batch_size=1024,      # Batch size for value function training
-            normalize_advantages=True,  # Optionally, can normalize advantages
-            input_normalization=True,   # Whether or not to normalize the inputs to policy & value
-            max_grad_norm=0.5,           # Gradient norm clipping
-            action_dim=None,
+            ppo_epsilon=0.2,    # Epsilon for clipping
+            *args,
+            **kwargs,
     ):
-        super().__init__()
+        super().__init__(*args, **kwargs)
 
-        self.env = env
-        self.obs_dim = get_dim(self.env.observation_space)
-        self.action_dim = self.env.action_space.shape[0] if action_dim is None else action_dim
-        self.policy = policy
-        self.value_func = value_func
-        self.discount = discount
-        self.gae_lambda = gae_lambda
-        self.target_kl = target_kl
-        self.entropy_coeff = entropy_coeff
-        self.num_epochs = num_epochs
-        self.num_policy_epochs = num_policy_epochs if num_policy_epochs is not None else num_epochs
-        self.policy_batch_size = policy_batch_size
-        self.value_batch_size = value_batch_size
-        self.normalize_advantages = normalize_advantages
-        self.input_normalization = input_normalization
-        self.max_grad_norm = max_grad_norm
+        self.ppo_epsilon = ppo_epsilon
 
-        if policy_lr is not None:
-            self.policy_optim = optim.Adam(self.policy.parameters(), lr=policy_lr)
-        self.value_optim = optim.Adam(self.value_func.parameters(), lr=value_lr)
+    def policy_objective(self, obs, actions, advantages, old_policy):
+        log_probs = torch.squeeze(self.policy.get_log_probs(obs, actions), dim=-1)
+        log_probs_old = torch.squeeze(old_policy.get_log_probs(obs, actions), dim=-1)
 
-        self._reward_std = 1
+        ratio = torch.exp(log_probs - log_probs_old)
+        policy_loss_1 = advantages * ratio
+        policy_loss_2 = advantages * torch.clamp(ratio, 1-self.ppo_epsilon, 1+self.ppo_epsilon)
 
-        self._need_to_update_eval_statistics = True
-        self.eval_statistics = OrderedDict()
+        if torch.any(torch.isinf(ratio)):
+            print("ratio is inf...")
+            # import pdb;pdb.set_trace()
+            objective = policy_loss_2.mean() # policy_loss_1に -inf が入ったりするので、policy_loss_2を使用するように変更した
+        else:
+            objective = torch.min(policy_loss_1, policy_loss_2).mean()
 
-    def train_from_paths(self, paths, mode=None):
+        if torch.any(torch.isnan(ratio)):
+            print("ratio is nan...")
+            sys.exit()
+
+
+        # objective = torch.min(policy_loss_1, policy_loss_2).mean()
+        # objective = policy_loss_2.mean() # policy_loss_1に -inf が入ったりするので、policy_loss_2を使用するように変更した
+        objective += self.entropy_coeff * (-log_probs).mean()
+
+        kl = (log_probs_old - log_probs).mean()
+
+        return objective, kl
+
+    def train_from_paths(self, paths, path_len = None):
 
         """
         Path preprocessing; have to copy so we don't modify when paths are used elsewhere
@@ -80,10 +73,6 @@ class PGTrainer(TorchTrainer):
             path['rewards'] = np.squeeze(path['rewards'], axis=-1)
             path['terminals'] = np.squeeze(path['terminals'], axis=-1)
 
-            if mode is None:
-                # Reward normalization; divide by std of reward in replay buffer
-                path['rewards'] = np.clip(path['rewards'] / (self._reward_std + 1e-3), -10, 10)
-
         obs, actions = [], []
         for path in paths:
             obs.append(path['observations'])
@@ -91,12 +80,15 @@ class PGTrainer(TorchTrainer):
         obs = np.concatenate(obs, axis=0)
         actions = np.concatenate(actions, axis=0)
 
+        total_steps = obs.shape[0]
+
         obs_tensor, act_tensor = ptu.from_numpy(obs), ptu.from_numpy(actions)
         """
         Policy training loop
         """
 
         old_policy = copy.deepcopy(self.policy)
+        # old_policy = ptu.clone_module(self.policy)
         with torch.no_grad():
             log_probs_old = old_policy.get_log_probs(obs_tensor, act_tensor).squeeze(dim=-1)
 
@@ -132,24 +124,18 @@ class PGTrainer(TorchTrainer):
 
             old_params = self.policy.get_param_values()
 
-            num_policy_steps = len(advantages) // self.policy_batch_size
-            for _ in range(num_policy_steps):
-                if num_policy_steps == 1:
-                    batch = dict(
-                        observations=obs,
-                        actions=actions,
-                        advantages=advantages,
-                    )
-                else:
-                    batch = ppp.sample_batch(
-                        self.policy_batch_size,
-                        observations=obs,
-                        actions=actions,
-                        advantages=advantages,
-                    )
-                num_p += 1
+            # lstmなので、path(200step)ずつ入力
+            # num_policy_steps = len(advantages) // self.policy_batch_size
+            for i in range(0, total_steps, path_len):
 
+                batch = dict(
+                    observations=obs[i:i+path_len, :],
+                    actions=actions[i:i+path_len, :],
+                    advantages=advantages[i:i+path_len],
+                )
+                num_p += 1
                 policy_loss, kl = self.train_policy(batch, old_policy)
+                print("policy_loss, kl", policy_loss, kl)
 
             with torch.no_grad():
                 log_probs = self.policy.get_log_probs(obs_tensor, act_tensor).squeeze(dim=-1)
@@ -161,6 +147,8 @@ class PGTrainer(TorchTrainer):
                     self.policy.set_param_values(old_params)
                 break
 
+
+        # ここもvalue funcにlstm組み込んだらかえるべし
             num_value_steps = len(advantages) // self.value_batch_size
             for i in range(num_value_steps):
                 batch = ppp.sample_batch(
@@ -225,66 +213,3 @@ class PGTrainer(TorchTrainer):
                 'Value Squared Errors',
                 value_loss,
             ))
-
-    def fit_input_stats(self, replay_buffer):
-        if self.input_normalization:
-            transitions = replay_buffer.get_transitions()
-            obs = transitions[:,:self.obs_dim]
-            self.policy.fit_input_stats(obs)
-            self.value_func.fit_input_stats(obs)
-            self._reward_std = transitions[:,-(self.obs_dim+2)].std()
-            if self._reward_std < 0.01:
-                self._reward_std = transitions[:,-(self.obs_dim+2)].max()
-
-    def policy_objective(self, obs, actions, advantages, old_policy):
-        log_probs = torch.squeeze(self.policy.get_log_probs(obs, actions), dim=-1)
-        log_probs_old = torch.squeeze(old_policy.get_log_probs(obs, actions), dim=-1)
-        objective = (log_probs * advantages).mean()
-        kl = (log_probs_old - log_probs).mean()
-        return objective, kl
-
-    def train_policy(self, batch, old_policy):
-        obs = ptu.from_numpy(batch['observations'])
-        actions = ptu.from_numpy(batch['actions'])
-        advantages = ptu.from_numpy(batch['advantages'])
-        objective, kl = self.policy_objective(obs, actions, advantages, old_policy)
-        policy_loss = -objective
-
-        self.policy_optim.zero_grad()
-        policy_loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
-        self.policy_optim.step()
-
-        return policy_loss, kl
-
-    def train_value(self, batch):
-        obs = ptu.from_numpy(batch['observations'])
-        targets = ptu.from_numpy(batch['targets'])
-
-        value_preds = torch.squeeze(self.value_func(obs), dim=-1)
-        value_loss = 0.5 * ((value_preds - targets) ** 2).mean()
-
-        self.value_optim.zero_grad()
-        value_loss.backward()
-        self.value_optim.step()
-
-        return value_loss
-
-    def get_diagnostics(self):
-        return self.eval_statistics
-
-    def end_epoch(self, epoch):
-        self._need_to_update_eval_statistics = True
-
-    @property
-    def networks(self):
-        return [
-            self.policy,
-            self.value_func,
-        ]
-
-    def get_snapshot(self):
-        return dict(
-            policy=self.policy,
-            value_func=self.value_func,
-        )

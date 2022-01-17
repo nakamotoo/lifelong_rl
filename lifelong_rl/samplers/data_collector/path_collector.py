@@ -1,7 +1,7 @@
 from collections import deque, OrderedDict
 
 from lifelong_rl.util.eval_util import create_stats_ordered_dict
-from lifelong_rl.samplers.utils.rollout_functions import rollout_with_latent, rollout_with_kbit_memory
+from lifelong_rl.samplers.utils.rollout_functions import rollout_with_latent, rollout_with_kbit_memory, rollout_with_lstm
 from lifelong_rl.samplers import rollout, multitask_rollout
 from lifelong_rl.samplers import PathCollector
 
@@ -160,6 +160,29 @@ class KbitMemoryPathCollector(MdpPathCollector):
         self._policy.fixed_latent = False
         self._policy.sample_latent()
 
+class LSTMPathCollector(MdpPathCollector):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.rollout_func = rollout_with_lstm
+
+    def rollout_function(self, *args, **kwargs):
+        return rollout_with_lstm(*args, **kwargs)
+
+    def finish_path(self, path):
+        # path['latent'] = self.prev_latent
+        return
+
+    def reset_policy(self):
+        super().reset_policy()
+        # self._policy.fixed_latent = True
+        # self._policy.sample_latent()
+        # self.prev_latent = self._policy.get_current_latent()
+
+    def end_path_collection(self):
+        super().end_path_collection()
+        # self._policy.fixed_latent = False
+        # self._policy.sample_latent()
 
 class GoalConditionedPathCollector(PathCollector):
 

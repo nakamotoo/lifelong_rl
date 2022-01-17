@@ -14,7 +14,7 @@ from lifelong_rl.envs.env_processor import make_env
 from lifelong_rl.envs.wrappers import ContinualLifelongEnv, FollowerEnv
 import lifelong_rl.torch.pytorch_util as ptu
 from lifelong_rl.envs.env_utils import get_dim
-from lifelong_rl.samplers.data_collector.path_collector import MdpPathCollector, LatentPathCollector, KbitMemoryPathCollector
+from lifelong_rl.samplers.data_collector.path_collector import MdpPathCollector, LatentPathCollector, KbitMemoryPathCollector, LSTMPathCollector
 from lifelong_rl.samplers.data_collector.step_collector import MdpStepCollector, RFCollector, \
     GoalConditionedReplayStepCollector
 
@@ -148,6 +148,11 @@ def experiment(
         expl_path_collector = RFCollector(expl_env, exploration_policy)
     elif collector_type == 'batch_kbit_memory':
         expl_path_collector = KbitMemoryPathCollector(
+            env=expl_env,
+            policy=exploration_policy,
+        )
+    elif collector_type == 'lstm_memory':
+        expl_path_collector = LSTMPathCollector(
             env=expl_env,
             policy=exploration_policy,
         )
