@@ -109,6 +109,112 @@ class FlattenMlp(Mlp):
         flat_inputs = torch.cat(inputs, dim=1)
         return super().forward(flat_inputs, **kwargs)
 
+class LSTMMlp(nn.Module):
+    def __init__(
+            self,
+            hidden_sizes,
+            output_size,
+            input_size,
+            init_w=3e-3,
+            hidden_activation=F.relu,
+            output_activation=identity,
+            hidden_init=ptu.fanin_init,
+            w_scale=1,
+            b_init_value=0.1,
+            layer_norm=False,
+            batch_norm=False,
+            final_init_scale=None,
+    ):
+        super().__init__()
+
+        self.input_size = input_size
+        self.output_size = output_size
+        self.hidden_activation = hidden_activation
+        self.output_activation = output_activation
+        self.layer_norm = layer_norm
+        self.batch_norm = batch_norm
+
+        self.fcs = []
+        self.layer_norms = []
+        self.batch_norms = []
+
+        # data normalization
+        self.input_mu = nn.Parameter(ptu.zeros(input_size), requires_grad=False).float()
+        self.input_std = nn.Parameter(ptu.ones(input_size), requires_grad=False).float()
+
+        in_size = input_size
+        for i, next_size in enumerate(hidden_sizes):
+            fc = nn.Linear(in_size, next_size)
+            hidden_init(fc.weight, w_scale)
+            fc.bias.data.fill_(b_init_value)
+            self.__setattr__("fc{}".format(i), fc)
+            self.fcs.append(fc)
+
+            if self.layer_norm:
+                ln = LayerNorm(next_size)
+                self.__setattr__("layer_norm{}".format(i), ln)
+                self.layer_norms.append(ln)
+
+            if self.batch_norm:
+                bn = nn.BatchNorm1d(next_size)
+                self.__setattr__('batch_norm%d' % i, bn)
+                self.batch_norms.append(bn)
+
+            in_size = next_size
+
+        # lstm
+        self.lstm  = nn.LSTM(input_size = hidden_sizes[-1], hidden_size = hidden_sizes[-1], batch_first=True)
+
+        self.last_fc = nn.Linear(in_size, output_size)
+        if final_init_scale is None:
+            self.last_fc.weight.data.uniform_(-init_w, init_w)
+            self.last_fc.bias.data.uniform_(-init_w, init_w)
+        else:
+            ptu.orthogonal_init(self.last_fc.weight, final_init_scale)
+            self.last_fc.bias.data.fill_(0)
+
+    def forward(self, input, return_preactivations=False):
+        h = (input - self.input_mu) / (self.input_std + 1e-6)
+        for i, fc in enumerate(self.fcs):
+            h = fc(h)
+            if self.layer_norm and i < len(self.fcs) - 1:
+                h = self.layer_norms[i](h)
+            if self.batch_norm:
+                h = self.batch_norms[i](h)
+            h = self.hidden_activation(h)
+
+        # lstm
+        h = h.unsqueeze(0)
+        h, lstm_hidden = self.lstm(h)
+        h = h.squeeze()
+
+        preactivation = self.last_fc(h)
+        output = self.output_activation(preactivation)
+        if return_preactivations:
+            return output, preactivation
+        else:
+            return output
+
+    def fit_input_stats(self, data, mask=None):
+        mean = np.mean(data, axis=0, keepdims=True)
+        std = np.std(data, axis=0, keepdims=True)
+        std[std != std] = 0
+        std[std < 1e-12] = 1.0
+        if mask is not None:
+            mean *= mask
+            std = mask * std + (1-mask) * np.ones(self.input_size)
+        self.input_mu.data = ptu.from_numpy(mean)
+        self.input_std.data = ptu.from_numpy(std)
+
+
+class FlattenLSTMMlp(LSTMMlp):
+    """
+    Flatten inputs along dimension 1 and then pass through MLP.
+    """
+
+    def forward(self, *inputs, **kwargs):
+        flat_inputs = torch.cat(inputs, dim=1)
+        return super().forward(flat_inputs, **kwargs)
 
 class Ensemble(nn.Module):
 

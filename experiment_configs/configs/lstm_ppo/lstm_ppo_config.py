@@ -3,7 +3,7 @@ import numpy as np
 
 from lifelong_rl.policies.base.lstm_memory_policy import LSTMMemoryPolicy
 from lifelong_rl.policies.models.lstm_gaussian_policy import LSTMGaussianPolicy
-from lifelong_rl.models.networks import FlattenMlp
+from lifelong_rl.models.networks import FlattenLSTMMlp
 from lifelong_rl.trainers.lstm_memory.lstm_memory import LSTMMemoryTrainer
 from lifelong_rl.trainers.lstm_memory.state_predictor import StatePredictor
 from lifelong_rl.trainers.pg.ppo_lstm import PPOLSTMTrainer
@@ -54,7 +54,7 @@ def get_config(
         latent_dim=latent_dim,
     )
 
-    value_func = FlattenMlp(
+    value_func = FlattenLSTMMlp(
         input_size=obs_dim,
         output_size=1,
         hidden_sizes=[M, M],

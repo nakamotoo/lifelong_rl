@@ -87,8 +87,10 @@ class PPOLSTMTrainer(PGTrainer):
         Policy training loop
         """
 
+        # old_state_dict = copy.deepcopy(self.policy.state_dict())
         old_policy = copy.deepcopy(self.policy)
-        # old_policy = ptu.clone_module(self.policy)
+        # old_policy_2 = ptu.clone_module(self.policy)
+        # import pdb;pdb.set_trace()
         with torch.no_grad():
             log_probs_old = old_policy.get_log_probs(obs_tensor, act_tensor).squeeze(dim=-1)
 
@@ -135,7 +137,6 @@ class PPOLSTMTrainer(PGTrainer):
                 )
                 num_p += 1
                 policy_loss, kl = self.train_policy(batch, old_policy)
-                print("policy_loss, kl", policy_loss, kl)
 
             with torch.no_grad():
                 log_probs = self.policy.get_log_probs(obs_tensor, act_tensor).squeeze(dim=-1)
@@ -148,13 +149,11 @@ class PPOLSTMTrainer(PGTrainer):
                 break
 
 
-        # ここもvalue funcにlstm組み込んだらかえるべし
-            num_value_steps = len(advantages) // self.value_batch_size
-            for i in range(num_value_steps):
-                batch = ppp.sample_batch(
-                    self.value_batch_size,
-                    observations=obs,
-                    targets=returns,
+        # ここもvalue funcにlstm組み込んだので, batch_size = path_len = 200 ずつ入力
+            for i in range(0, total_steps, path_len):
+                batch = dict(
+                    observations=obs[i:i+path_len, :],
+                    targets=returns[i:i+path_len],
                 )
                 value_loss = self.train_value(batch)
                 num_v += 1
@@ -163,12 +162,10 @@ class PPOLSTMTrainer(PGTrainer):
         # Ensure the value function is always updated for the maximum number
         # of epochs, regardless of if the policy wants to terminate early.
         for _ in range(rem_value_epochs):
-            num_value_steps = len(advantages) // self.value_batch_size
-            for i in range(num_value_steps):
-                batch = ppp.sample_batch(
-                    self.value_batch_size,
-                    observations=obs,
-                    targets=returns,
+            for i in range(0, total_steps, path_len):
+                batch = dict(
+                    observations=obs[i:i+path_len, :],
+                    targets=returns[i:i+path_len],
                 )
                 value_loss = self.train_value(batch)
 

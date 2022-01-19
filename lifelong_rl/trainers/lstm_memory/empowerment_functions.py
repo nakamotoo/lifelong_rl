@@ -41,8 +41,9 @@ def calculate_contrastive_empowerment(
         logp = ptu.get_numpy(logp)
 
     if distribution_type == 'uniform':
-        latent_altz = np.random.randint(low=0, high=2, size=(obs_altz.shape[0], latents.shape[1]))
-
+        # lstmのmemoryは実際に集めた2000 samplesからランダムで抽出
+        idx = np.random.randint(latents.shape[0], size=obs_altz.shape[0])
+        latent_altz = latents[idx, :]
 
     # keep track of next obs/delta
     next_obs_altz = np.concatenate([hidden_state] * num_prior_samples, axis=0)

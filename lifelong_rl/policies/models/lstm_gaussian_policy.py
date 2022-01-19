@@ -97,6 +97,8 @@ class LSTMGaussianPolicy(Mlp, ExplorationPolicy):
         :param deterministic: If True, do not sample
         :param return_log_prob: If True, return a sample and its log probability
         """
+        self.lstm.flatten_parameters()
+
         if len(obs.shape) == 1:
             obs = obs[self.restrict_obs_dim:]
         else:
@@ -112,7 +114,7 @@ class LSTMGaussianPolicy(Mlp, ExplorationPolicy):
             h = h.unsqueeze(0)
         # lstmに通す
         h, lstm_hidden = self.lstm(h, lstm_hidden)
-        self.current_lstm_h = lstm_hidden[0]
+        self.current_lstm_h = ptu.get_numpy(lstm_hidden[0]).squeeze()
 
         h = h.squeeze()
 
