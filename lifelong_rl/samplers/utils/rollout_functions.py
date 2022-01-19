@@ -330,3 +330,89 @@ def rollout_with_kbit_memory(
         hidden_states = hidden_states,
         next_latents = next_latents
     )
+
+def rollout_with_lstm(
+        env,
+        agent,
+        max_path_length=np.inf,
+        render=False,
+        render_kwargs=None,
+):
+
+    if render_kwargs is None:
+        render_kwargs = {}
+    observations = []
+    actions = []
+    writes = []
+    rewards = []
+    terminals = []
+    agent_infos = []
+    env_infos = []
+    latents = []
+    next_latents = []
+    hidden_states = []
+    env_states = []
+    o = env.reset()
+    agent.reset()
+    latent_dim = agent._latent_dim
+    next_o = None
+    path_length = 0
+    if render:
+        env.render(**render_kwargs)
+    while path_length < max_path_length:
+        if path_length == 0:
+            agent.reset_lstm_hidden()
+        hidden_s = env._get_hidden_state()
+        a, agent_info = agent.get_action(o)
+        next_o, r, d, env_info = env.step(a)
+        observations.append(o)
+        hidden_states.append(hidden_s)
+        rewards.append(r)
+        terminals.append(d)
+        actions.append(a)
+        agent_infos.append(agent_info)
+        env_infos.append(env_info)
+        latents.append(agent.get_current_latent())
+        # next_m = agent.get_current_latent()
+        # next_latents.append(next_m)
+
+        env_states.append(env.sim.get_state())
+        path_length += 1
+        if d:
+            break
+        o = next_o
+        if render:
+            env.render(**render_kwargs)
+
+    actions = np.array(actions)
+    if len(actions.shape) == 1:
+        actions = np.expand_dims(actions, 1)
+    writes = np.array(writes)
+    observations = np.array(observations)
+    if len(observations.shape) == 1:
+        observations = np.expand_dims(observations, 1)
+        next_o = np.array([next_o])
+    hidden_states = np.array(hidden_states)
+    if len(hidden_states.shape) == 1:
+        hidden_states = np.expand_dims(hidden_states, 1)
+
+    next_observations = np.vstack(
+        (
+            observations[1:, :],
+            np.expand_dims(next_o, 0)
+        )
+    )
+    return dict(
+        observations=observations,
+        actions=actions,
+        rewards=np.array(rewards).reshape(-1, 1),
+        next_observations=next_observations,
+        terminals=np.array(terminals).reshape(-1, 1),
+        agent_infos=agent_infos,
+        env_infos=env_infos,
+        latents=np.array(latents),
+        env_states = env_states,
+        hidden_states = hidden_states,
+        next_latents = next_latents
+    )
+

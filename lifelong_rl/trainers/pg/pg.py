@@ -97,6 +97,10 @@ class PGTrainer(TorchTrainer):
         """
 
         old_policy = copy.deepcopy(self.policy)
+        # old_policy = copy.deepcopy(self.policy)
+        old_policy_2 = ptu.clone_module(self.policy)
+        import pdb;pdb.set_trace()
+
         with torch.no_grad():
             log_probs_old = old_policy.get_log_probs(obs_tensor, act_tensor).squeeze(dim=-1)
 
@@ -247,7 +251,6 @@ class PGTrainer(TorchTrainer):
         obs = ptu.from_numpy(batch['observations'])
         actions = ptu.from_numpy(batch['actions'])
         advantages = ptu.from_numpy(batch['advantages'])
-
         objective, kl = self.policy_objective(obs, actions, advantages, old_policy)
         policy_loss = -objective
 
