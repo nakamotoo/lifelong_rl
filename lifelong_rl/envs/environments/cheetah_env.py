@@ -2,17 +2,46 @@ import numpy as np
 from gym import utils
 from gym.envs.mujoco import mujoco_env
 
+"""
+ State-Space (name/joint/parameter):
+        - rootx     slider      position (m)
+        - rootz     slider      position (m)
+        - rooty     hinge       angle (rad)
+        - bthigh    hinge       angle (rad)
+        - bshin     hinge       angle (rad)
+        - bfoot     hinge       angle (rad)
+        - fthigh    hinge       angle (rad)
+        - fshin     hinge       angle (rad)
+        - ffoot     hinge       angle (rad)
+        - rootx     slider      velocity (m/s)
+        - rootz     slider      velocity (m/s)
+        - rooty     hinge       angular velocity (rad/s)
+        - bthigh    hinge       angular velocity (rad/s)
+        - bshin     hinge       angular velocity (rad/s)
+        - bfoot     hinge       angular velocity (rad/s)
+        - fthigh    hinge       angular velocity (rad/s)
+        - fshin     hinge       angular velocity (rad/s)
+        - ffoot     hinge       angular velocity (rad/s)
+    Actuators (name/actuator/parameter):
+        - bthigh    hinge       torque (N m)
+        - bshin     hinge       torque (N m)
+        - bfoot     hinge       torque (N m)
+        - fthigh    hinge       torque (N m)
+        - fshin     hinge       torque (N m)
+        - ffoot     hinge       torque (N m)
+"""
 
 class PartialHalfCheetahEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
-    def __init__(self, hidden_state="vel"):
-        self._hidden_state = hidden_state
-
+    def __init__(self, partial_mode="vel"):
+        self._partial_mode = partial_mode
         mujoco_env.MujocoEnv.__init__(self, 'half_cheetah.xml', 5)
         utils.EzPickle.__init__(self)
-
-        if hidden_state == "vel":
+        self._partial_mode = partial_mode
+        if partial_mode == "vel":
             self.hidden_state_dim = self.sim.data.qvel.shape[0]
+        elif partial_mode == "ffoot":
+            self.hidden_state_dim = 2
 
 
     def step(self, action):
@@ -27,16 +56,27 @@ class PartialHalfCheetahEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         return ob, reward, done, dict(reward_run=reward_run, reward_ctrl=reward_ctrl)
 
     def _get_obs(self):
-        if self._hidden_state == "vel":
+        if self._partial_mode == "vel":
             return np.concatenate([
                 self.sim.data.qpos.flat[1:],
                 # self.sim.data.qvel.flat,
             ])
+        elif self._partial_mode == "ffoot":
+            return np.concatenate([
+                self.sim.data.qpos.flat[1:-1],
+                self.sim.data.qvel.flat[:-1],
+            ])
+
     def _get_hidden_state(self):
-        if self._hidden_state == "vel":
+        if self._partial_mode == "vel":
             return np.concatenate([
                 # self.sim.data.qpos.flat[1:],
                 self.sim.data.qvel.flat,
+            ])
+        elif self._partial_mode == "ffoot":
+            return np.array([
+                self.sim.data.qpos.flat[-1],
+                self.sim.data.qvel.flat[-1],
             ])
 
     def reset_model(self):

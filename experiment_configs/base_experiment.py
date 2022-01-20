@@ -65,21 +65,9 @@ def experiment(
     Environment setup
     """
 
-    envs_list = variant.get('envs_list', None)
 
-    if envs_list is None:
-        expl_env, env_infos = make_env(variant['env_name'], **variant.get('env_kwargs', {}))
+    expl_env, env_infos = make_env(variant['env_name'], **variant.get('env_kwargs', {}))
 
-    else:
-        # TODO: not sure if this is tested
-        if len(envs_list) == 0:
-            raise AttributeError('length of envs_list is zero')
-        switch_every = variant['switch_every']
-        expl_envs = []
-        for env_params in envs_list:
-            expl_env, env_infos = make_env(**env_params)
-            expl_envs.append(expl_env)
-        expl_env = ContinualLifelongEnv(expl_envs[0], switch_every, expl_envs)
 
     obs_dim = get_dim(expl_env.observation_space)
     action_dim = get_dim(expl_env.action_space)
@@ -91,7 +79,9 @@ def experiment(
     else:
         replay_buffer = EnvReplayBuffer(variant['replay_buffer_size'], expl_env)
 
-    eval_env = FollowerEnv(expl_env)
+    eval_env, _ = make_env(variant['env_name'], **variant.get('env_kwargs', {}))
+    eval_env = FollowerEnv(eval_env)
+
 
     """
     Import any teacher data
