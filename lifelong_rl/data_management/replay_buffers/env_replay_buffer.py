@@ -1,5 +1,5 @@
 import gym
-from gym.spaces import Discrete
+from gym.spaces import Discrete, Box, Dict
 
 from lifelong_rl.data_management.replay_buffers.simple_replay_buffer import SimpleReplayBuffer
 from lifelong_rl.envs.env_utils import get_dim
@@ -19,7 +19,11 @@ class EnvReplayBuffer(SimpleReplayBuffer):
         :param env:
         """
         self.env = env
-        self._ob_space = env.observation_space
+        if isinstance(env.observation_space, Box):
+            self._ob_space = env.observation_space
+        elif isinstance(env.observation_space, Dict):
+            self._ob_space = env.observation_space["observation"]
+
         self._action_space = env.action_space
         self._meta_infos = []
 

@@ -68,7 +68,6 @@ def experiment(
 
     expl_env, env_infos = make_env(variant['env_name'], **variant.get('env_kwargs', {}))
 
-
     obs_dim = get_dim(expl_env.observation_space)
     action_dim = get_dim(expl_env.action_space)
 

@@ -1,5 +1,6 @@
 # 結果の可視化
 python viz_hist.py --env=HalfCheetah --end=1000 --output=visualize/test.mp4 --snapshot=/data/local/mitsuhiko/lifelong_rl/itr_999
+python viz_hist.py --env=PartialFetchPickAndPlace --end=1000 --output=visualize/test.mp4 --snapshot=/data/local/mitsuhiko/lifelong_rl/itr_999
 
 export PYTHONPATH=$PYTHONPATH:~/doodad
 
