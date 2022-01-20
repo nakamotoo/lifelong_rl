@@ -10,9 +10,9 @@ discrim_layer_size = 512
 horizon = int(2000)
 
 # ENV_NAME = 'Gridworld'
-ENV_NAME = 'PartialHalfCheetah'
+ENV_NAME = 'PartialFetchPickAndPlace'
 experiment_kwargs = dict(
-    exp_name='lstm-memory-ppo-cheetah-p{}-d{}'.format(str(policy_layer_size), str(discrim_layer_size)),
+    exp_name='lstm-memory-ppo-{}-p{}-d{}'.format(str(ENV_NAME), str(policy_layer_size), str(discrim_layer_size)),
     num_seeds=1,
     instance_type='c4.4xlarge',
     use_gpu=True,

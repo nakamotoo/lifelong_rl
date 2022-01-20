@@ -4,7 +4,7 @@ from experiment_configs.configs.pg.ppo_config import get_config
 from experiment_configs.algorithms.batch import get_algorithm
 import os
 
-ENV_NAME = 'HalfCheetah'
+ENV_NAME = 'FetchPickAndPlace'
 experiment_kwargs = dict(
     exp_name='ppo-cheetah',
     num_seeds=1,
@@ -14,13 +14,13 @@ experiment_kwargs = dict(
 
 
 if __name__ == "__main__":
-    os.environ["CUDA_VISIBLE_DEVICES"]='2'
+    os.environ["CUDA_VISIBLE_DEVICES"]='0'
     variant = dict(
         algorithm='PPO',
         collector_type='batch',
         env_name=ENV_NAME,
         env_kwargs=dict(),
-        replay_buffer_size=int(5000),
+        replay_buffer_size=int(2000),
         policy_kwargs=dict(
             layer_size=64,
         ),
@@ -34,7 +34,7 @@ if __name__ == "__main__":
             policy_lr=3e-4,
             value_lr=3e-4,
             target_kl=None,
-            num_epochs=10,
+            num_epochs=3,
             policy_batch_size=64,
             value_batch_size=64,
             normalize_advantages=True,
@@ -43,10 +43,10 @@ if __name__ == "__main__":
             num_epochs=10000,
             num_eval_steps_per_epoch=1500,
             num_trains_per_train_loop=1,
-            num_expl_steps_per_train_loop=5000,
+            num_expl_steps_per_train_loop=2000,
             min_num_steps_before_training=0,
             max_path_length=200,
-            save_snapshot_freq=50,
+            save_snapshot_freq=1,
         ),
     )
 
