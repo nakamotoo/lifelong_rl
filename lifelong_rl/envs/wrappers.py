@@ -235,10 +235,11 @@ class ContinualLifelongEnv(ProxyEnv):
 class FollowerEnv(ProxyEnv):
 
     def __init__(self, env_to_follow):
-        super().__init__(copy.deepcopy(env_to_follow))
-
+        super().__init__(env_to_follow)
+        # super().__init__(copy.deepcopy(env_to_follow))
         self.parent_env = env_to_follow
 
     def reset(self):
-        self._wrapped_env = copy.deepcopy(self.parent_env)
+        # self._wrapped_env = copy.deepcopy(self.parent_env)
+        self._wrapped_env = self.parent_env
         return super().reset()
