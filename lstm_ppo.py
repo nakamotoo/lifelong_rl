@@ -5,14 +5,17 @@ from experiment_configs.algorithms.batch import get_algorithm
 import os
 
 num_epochs = 4
-policy_layer_size = 512
-discrim_layer_size = 512
+policy_layer_size = 128
+discrim_layer_size = 128
 horizon = int(2000)
 
 # ENV_NAME = 'Gridworld'
-ENV_NAME = 'PartialFetchPickAndPlace'
+# ENV_NAME = 'PartialFetchPickAndPlace'
+ENV_NAME = 'PartialHalfCheetah'
+partial_mode = 'ffoot' # vel or ffoot
+
 experiment_kwargs = dict(
-    exp_name='lstm-memory-ppo-{}-p{}-d{}'.format(str(ENV_NAME), str(policy_layer_size), str(discrim_layer_size)),
+    exp_name='lstm-memory-ppo-{}-{}-p{}-d{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size)),
     num_seeds=1,
     instance_type='c4.4xlarge',
     use_gpu=True,
@@ -29,11 +32,12 @@ if __name__ == "__main__":
         env_name=ENV_NAME,
         env_kwargs=dict(
             terminates=False,
+            partial_mode = partial_mode
         ),
         policy_kwargs=dict(
             layer_size=policy_layer_size,
             latent_dim=policy_layer_size,
-            layer_num = 1,
+            layer_num = 2,
         ),
         discriminator_kwargs=dict(
             layer_size=discrim_layer_size,

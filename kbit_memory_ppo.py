@@ -5,14 +5,14 @@ from experiment_configs.algorithms.batch import get_algorithm
 import os
 
 num_epochs =  8
-policy_layer_size = 512
-discrim_layer_size = 512
+policy_layer_size = 256
+discrim_layer_size = 256
 horizon = int(2000)
 memory_bit = 12
 
 # ENV_NAME = 'Gridworld'
-ENV_NAME = 'PartialHalfCheetah'
-partial_mode = 'ffoot'
+ENV_NAME = 'PartialAnt'
+partial_mode = 'vel'
 
 experiment_kwargs = dict(
     exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit)),
@@ -72,7 +72,7 @@ if __name__ == "__main__":
             num_expl_steps_per_train_loop=horizon,
             min_num_steps_before_training=0,
             max_path_length=200,
-            save_snapshot_freq=50,
+            save_snapshot_freq=1,
         ),
     )
 
