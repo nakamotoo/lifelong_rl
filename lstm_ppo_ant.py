@@ -6,6 +6,7 @@ import os
 
 num_epochs = 4
 policy_layer_size = 512
+layer_division = 1
 discrim_layer_size = 512
 horizon = int(2000)
 
@@ -15,8 +16,13 @@ oracle_reward_scale = 0.5
 ENV_NAME = 'PartialAnt'
 partial_mode = 'vel' # vel or ffoot
 
+if oracle_reward_scale > 0:
+    exp_name='lstm-memory-ppo-{}-{}-p{}-d{}-{}-blend'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(layer_division))
+else:
+    exp_name='lstm-memory-ppo-{}-{}-p{}-d{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(layer_division))
+
 experiment_kwargs = dict(
-    exp_name='lstm-memory-ppo-{}-{}-p{}-d{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size)),
+    exp_name=exp_name,
     num_seeds=1,
     instance_type='c4.4xlarge',
     use_gpu=True,
@@ -37,8 +43,9 @@ if __name__ == "__main__":
         ),
         policy_kwargs=dict(
             layer_size=policy_layer_size,
-            latent_dim=policy_layer_size,
-            layer_num = 1,
+            latent_dim=policy_layer_size // layer_division,
+            layer_num = policy_num_layer,
+            layer_division = layer_division
         ),
         discriminator_kwargs=dict(
             layer_size=discrim_layer_size,

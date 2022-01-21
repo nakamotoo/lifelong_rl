@@ -25,12 +25,23 @@ def get_config(
     """
 
     M = variant['policy_kwargs']['layer_size']
+    layer_division = variant['policy_kwargs']['layer_division']
+
+    policy_hidden_sizes = []
+    for i in range(variant['policy_kwargs']['layer_num']):
+        if i == 0:
+            policy_hidden_sizes.append(M)
+        else:
+            policy_hidden_sizes.append(M // layer_division)
+
+
     latent_dim = variant['policy_kwargs']['latent_dim']
     restrict_dim = variant['discriminator_kwargs']['restrict_input_size']
 
     hidden_state_dim = expl_env.hidden_state_dim
 
     print("obs_dim, action_dim, hidden_state_dim = ", obs_dim, action_dim, hidden_state_dim)
+    print("policy_hidden_sizes", policy_hidden_sizes)
 
 
 # 通常のTanhGaussianPolicyにlstmを組み込む
@@ -38,7 +49,7 @@ def get_config(
     control_policy = LSTMGaussianPolicy(
         obs_dim=obs_dim,
         action_dim=action_dim,
-        hidden_sizes=[M] * variant['policy_kwargs']['layer_num'],
+        hidden_sizes=policy_hidden_sizes,
         restrict_obs_dim=restrict_dim,
         hidden_activation=torch.tanh,
         b_init_value=0,
@@ -57,7 +68,7 @@ def get_config(
     value_func = FlattenLSTMMlp(
         input_size=obs_dim,
         output_size=1,
-        hidden_sizes=[M] * variant['policy_kwargs']['layer_num'],
+        hidden_sizes=policy_hidden_sizes,
         hidden_activation=torch.tanh,
         hidden_init=ptu.orthogonal_init,
         b_init_value=0,

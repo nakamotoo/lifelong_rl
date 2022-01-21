@@ -5,18 +5,24 @@ from experiment_configs.algorithms.batch import get_algorithm
 import os
 
 num_epochs = 4
-policy_layer_size = 128
-discrim_layer_size = 128
+policy_layer_size = 64
+layer_division = 4
+discrim_layer_size = 256
 horizon = int(2000)
 
 intrinsic_reward_scale= 1  # increasing reward scale helps learning signal
 oracle_reward_scale = 0.5
 
 ENV_NAME = 'PartialHalfCheetah'
-partial_mode = 'ffoot' # vel or ffoot
+partial_mode = 'vel' # vel or ffoot
+
+if oracle_reward_scale > 0:
+    exp_name='lstm-memory-ppo-{}-{}-p{}-d{}-{}-blend'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(layer_division))
+else:
+    exp_name='lstm-memory-ppo-{}-{}-p{}-d{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(layer_division))
 
 experiment_kwargs = dict(
-    exp_name='lstm-memory-ppo-{}-{}-p{}-d{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size)),
+    exp_name=exp_name,
     num_seeds=1,
     instance_type='c4.4xlarge',
     use_gpu=True,
@@ -37,8 +43,9 @@ if __name__ == "__main__":
         ),
         policy_kwargs=dict(
             layer_size=policy_layer_size,
-            latent_dim=policy_layer_size,
+            latent_dim=policy_layer_size // layer_division,
             layer_num = 2,
+            layer_division = layer_division # [M, M//layer_divison, M//layer_divison]
         ),
         discriminator_kwargs=dict(
             layer_size=discrim_layer_size,
@@ -68,7 +75,7 @@ if __name__ == "__main__":
             normalize_advantages=True,
         ),
         algorithm_kwargs=dict(
-            num_epochs=20000,
+            num_epochs=10000,
             num_eval_steps_per_epoch=1000,
             num_trains_per_train_loop=1,
             num_expl_steps_per_train_loop=horizon,

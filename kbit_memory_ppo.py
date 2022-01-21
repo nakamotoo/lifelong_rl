@@ -17,8 +17,13 @@ oracle_reward_scale = 0.5
 ENV_NAME = 'PartialHalfCheetah'
 partial_mode = 'vel'
 
+if oracle_reward_scale > 0:
+    exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}-blend'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit))
+else:
+    exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit))
+
 experiment_kwargs = dict(
-    exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit)),
+    exp_name=exp_name,
     num_seeds=1,
     instance_type='c4.4xlarge',
     use_gpu=True,
