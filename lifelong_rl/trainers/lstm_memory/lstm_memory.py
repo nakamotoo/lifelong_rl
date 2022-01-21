@@ -35,7 +35,8 @@ class LSTMMemoryTrainer(TorchTrainer):
             reward_mode=None,            # Which reward function to use (default: contrastive)
             algorithm = None,
             latent_dim = None,
-            path_len = None
+            path_len = None,
+            oracle_reward_scale =None
     ):
         super().__init__()
 
@@ -60,6 +61,7 @@ class LSTMMemoryTrainer(TorchTrainer):
         self.restrict_input_size = restrict_input_size
         self.relabel_rewards = relabel_rewards
         self.reward_mode = reward_mode
+        self.oracle_reward_scale = oracle_reward_scale
 
         self.discrim_optim = torch.optim.Adam(
             discriminator.parameters(), lr=discrim_learning_rate,
@@ -73,6 +75,7 @@ class LSTMMemoryTrainer(TorchTrainer):
         self._rewards = np.zeros((replay_size, 1))
         self._terminals = np.zeros((replay_size, 1))
         self._logprobs = np.zeros((replay_size, 1))
+        self._oracle_rewards = np.zeros((replay_size, 1))
 
         self._ptr = 0
         self.replay_size = replay_size
@@ -92,7 +95,7 @@ class LSTMMemoryTrainer(TorchTrainer):
         print("LSTM Memory, algorithm", algorithm)
 
 
-    def add_sample(self, obs, hidden_s, true_next_obs, action, latent, logprob=None, terminal=None,  **kwargs):
+    def add_sample(self, obs, hidden_s, true_next_obs, action, latent, logprob=None, terminal=None, oracle_reward=None, **kwargs):
         self._obs[self._ptr] = obs
         self._hidden_states[self._ptr] = hidden_s
         self._true_next_obs[self._ptr] = true_next_obs
@@ -102,6 +105,8 @@ class LSTMMemoryTrainer(TorchTrainer):
 
         if logprob is not None:
             self._logprobs[self._ptr] = logprob
+
+        self._oracle_rewards[self._ptr] = oracle_reward
 
         self._ptr = (self._ptr + 1) % self.replay_size
         self._cur_replay_size = min(self._cur_replay_size+1, self.replay_size)
@@ -129,9 +134,11 @@ class LSTMMemoryTrainer(TorchTrainer):
         rewards = np.clip(rewards, self.reward_bounds[0], self.reward_bounds[1])
         return rewards, (logp, logp_altz, denom), reward_diagnostics
 
-    def reward_postprocessing(self, rewards, *args, **kwargs):
+    def reward_postprocessing(self, intrinsic, oracle, *args, **kwargs):
         # Some scaling of the rewards can help; it is very finicky though
-        rewards *= self.reward_scale
+        rewards = intrinsic * self.reward_scale
+        if self.oracle_reward_scale is not None:
+            rewards += oracle * self.oracle_reward_scale
         rewards = np.clip(rewards, *self.reward_bounds)  # stabilizes training
         return rewards, dict()
 
@@ -152,6 +159,7 @@ class LSTMMemoryTrainer(TorchTrainer):
             latents = path['latents']
             path_len = len(obs) - self.empowerment_horizon + 1
             terminals = path['terminals']
+            oracle_rewards = path["rewards"]
 
             log_probs = self.control_policy.get_log_probs(
                 ptu.from_numpy(obs),
@@ -167,7 +175,8 @@ class LSTMMemoryTrainer(TorchTrainer):
                     actions[t],
                     latents[t],
                     logprob=log_probs[t],
-                    terminal = terminals[t]
+                    terminal = terminals[t],
+                    oracle_reward = oracle_rewards[t]
                 )
 
                 epoch_obs.append(obs[t:t+1])
@@ -239,8 +248,13 @@ class LSTMMemoryTrainer(TorchTrainer):
                 self._latents[:self._cur_replay_size],
                 reward_kwargs=reward_kwargs
             )
+            # 純粋なintrinsic reward
             orig_rewards = rewards.copy()
-            rewards, postproc_dict = self.reward_postprocessing(rewards, reward_kwargs=reward_kwargs)
+            # 外部報酬
+            oracle_rewards = self._oracle_rewards[:self._cur_replay_size].squeeze()
+
+            # ブレンドなどはこの関数で行う
+            rewards, postproc_dict = self.reward_postprocessing(rewards, oracle_rewards, reward_kwargs=reward_kwargs)
             reward_diagnostics.update(postproc_dict)
             self._rewards[:self._cur_replay_size] = np.expand_dims(rewards, axis=-1)
 
@@ -298,9 +312,15 @@ class LSTMMemoryTrainer(TorchTrainer):
                     'Intrinsic Rewards (Original)',
                     orig_rewards[inds],
                 ))
+                # total rewards
                 self.eval_statistics.update(create_stats_ordered_dict(
-                    'Intrinsic Rewards (Processed)',
+                    'Total Rewards',
                     rewards[inds],
+                ))
+                 ## oracle rewardsも記録
+                self.eval_statistics.update(create_stats_ordered_dict(
+                    'Oracle Rewards',
+                    oracle_rewards[inds],
                 ))
 
         self._n_train_steps_total += 1

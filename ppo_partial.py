@@ -4,6 +4,10 @@ from experiment_configs.configs.pg.ppo_config import get_config
 from experiment_configs.algorithms.batch import get_algorithm
 import os
 
+num_epochs =  8
+horizon = int(2000)
+policy_layer_size = 512
+
 ENV_NAME = 'PartialHalfCheetah'
 experiment_kwargs = dict(
     exp_name='ppo-cheetah-partial',
@@ -14,37 +18,37 @@ experiment_kwargs = dict(
 
 
 if __name__ == "__main__":
-    os.environ["CUDA_VISIBLE_DEVICES"]='2'
+    os.environ["CUDA_VISIBLE_DEVICES"]='0'
     variant = dict(
         algorithm='PPO',
         collector_type='batch',
         env_name=ENV_NAME,
         env_kwargs=dict(),
-        replay_buffer_size=int(1e6),
+        replay_buffer_size=horizon,
         policy_kwargs=dict(
-            layer_size=64,
+            layer_size=policy_layer_size,
         ),
         value_kwargs=dict(
-            layer_size=256,
+            layer_size=policy_layer_size,
         ),
         policy_trainer_kwargs=dict(
             discount=0.99,
             gae_lambda=0.97,
-            ppo_epsilon=0.2,
-            policy_lr=3e-4,
-            value_lr=3e-4,
-            target_kl=None,
-            num_epochs=10,
-            policy_batch_size=64,
-            value_batch_size=64,
+            ppo_epsilon=0.1,
+            policy_lr=3e-5,
+            value_lr=3e-5,
+            target_kl=0.01,
+            num_epochs=num_epochs,
+            policy_batch_size=512,
+            value_batch_size=512,
             normalize_advantages=True,
         ),
         algorithm_kwargs=dict(
             num_epochs=10000,
-            num_eval_steps_per_epoch=1500,
+            num_eval_steps_per_epoch=1000,
             num_trains_per_train_loop=1,
-            num_expl_steps_per_train_loop=2000,
-            min_num_steps_before_training=1000,
+            num_expl_steps_per_train_loop=horizon,
+            min_num_steps_before_training=0,
             max_path_length=200,
             save_snapshot_freq=50,
         ),

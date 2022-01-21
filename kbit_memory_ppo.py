@@ -10,12 +10,20 @@ discrim_layer_size = 512
 horizon = int(2000)
 memory_bit = 1
 
+intrinsic_reward_scale= 1  # increasing reward scale helps learning signal
+oracle_reward_scale = 0.5
+
 # ENV_NAME = 'Gridworld'
 ENV_NAME = 'PartialHalfCheetah'
 partial_mode = 'vel'
 
+if oracle_reward_scale > 0:
+    exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}-blend'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit))
+else:
+    exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit))
+
 experiment_kwargs = dict(
-    exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit)),
+    exp_name=exp_name,
     num_seeds=1,
     instance_type='c4.4xlarge',
     use_gpu=True,
@@ -52,7 +60,8 @@ if __name__ == "__main__":
             discrim_learning_rate=3e-4,
             policy_batch_size=512,
             reward_bounds=(-50, 50),
-            reward_scale=1,  # increasing reward scale helps learning signal
+            reward_scale=intrinsic_reward_scale,  # increasing reward scale helps learning signal
+            oracle_reward_scale = oracle_reward_scale # cheetahのoracle rewardはだいたい5-7くらい
         ),
         policy_trainer_kwargs=dict(
             discount=0.99,

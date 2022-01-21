@@ -33,7 +33,8 @@ class KbitMemoryTrainer(TorchTrainer):
             relabel_rewards=True,        # Whether or not to relabel the rewards of buffer
             train_every=1,               # How often to train when train is called
             reward_mode=None,            # Which reward function to use (default: contrastive)
-            algorithm = None
+            algorithm = None,
+            oracle_reward_scale =None
     ):
         super().__init__()
 
@@ -58,6 +59,7 @@ class KbitMemoryTrainer(TorchTrainer):
         self.restrict_input_size = restrict_input_size
         self.relabel_rewards = relabel_rewards
         self.reward_mode = reward_mode
+        self.oracle_reward_scale = oracle_reward_scale
 
         self.discrim_optim = torch.optim.Adam(
             discriminator.parameters(), lr=discrim_learning_rate,
@@ -72,6 +74,7 @@ class KbitMemoryTrainer(TorchTrainer):
         self._rewards = np.zeros((replay_size, 1))
         self._terminals = np.zeros((replay_size, 1))
         self._logprobs = np.zeros((replay_size,1))
+        self._oracle_rewards = np.zeros((replay_size, 1))
 
         self._ptr = 0
         self.replay_size = replay_size
@@ -90,7 +93,7 @@ class KbitMemoryTrainer(TorchTrainer):
         print("kbit_memory, algorithm", algorithm)
 
 
-    def add_sample(self, obs, hidden_s, true_next_obs, action, latent, next_latent, logprob=None, terminal=None,  **kwargs):
+    def add_sample(self, obs, hidden_s, true_next_obs, action, latent, next_latent, logprob=None, terminal=None, oracle_reward=None,  **kwargs):
         self._obs[self._ptr] = obs
         self._hidden_states[self._ptr] = hidden_s
         self._true_next_obs[self._ptr] = true_next_obs
@@ -100,6 +103,7 @@ class KbitMemoryTrainer(TorchTrainer):
         self._terminals[self._ptr] = terminal
         if logprob is not None:
             self._logprobs[self._ptr] = logprob
+        self._oracle_rewards[self._ptr] = oracle_reward
 
         self._ptr = (self._ptr + 1) % self.replay_size
         self._cur_replay_size = min(self._cur_replay_size+1, self.replay_size)
@@ -127,9 +131,11 @@ class KbitMemoryTrainer(TorchTrainer):
         rewards = np.clip(rewards, self.reward_bounds[0], self.reward_bounds[1])
         return rewards, (logp, logp_altz, denom), reward_diagnostics
 
-    def reward_postprocessing(self, rewards, *args, **kwargs):
+    def reward_postprocessing(self, intrinsic, oracle, *args, **kwargs):
         # Some scaling of the rewards can help; it is very finicky though
-        rewards *= self.reward_scale
+        rewards = intrinsic * self.reward_scale
+        if self.oracle_reward_scale is not None:
+            rewards += oracle * self.oracle_reward_scale
         rewards = np.clip(rewards, *self.reward_bounds)  # stabilizes training
         return rewards, dict()
 
@@ -152,6 +158,7 @@ class KbitMemoryTrainer(TorchTrainer):
             next_latents = path['next_latents']
             path_len = len(obs) - self.empowerment_horizon + 1
             terminals = path['terminals']
+            oracle_rewards = path["rewards"]
 
             obs_latents = np.concatenate([obs, latents], axis=-1)
             actions_writes = np.concatenate([actions, writes], axis=-1)
@@ -171,7 +178,8 @@ class KbitMemoryTrainer(TorchTrainer):
                     latents[t],
                     next_latents[t],
                     logprob=log_probs[t],
-                    terminal = terminals[t]
+                    terminal = terminals[t],
+                    oracle_reward = oracle_rewards[t]
                 )
 
                 epoch_obs.append(obs[t:t+1])
@@ -243,12 +251,18 @@ class KbitMemoryTrainer(TorchTrainer):
                 self._latents[:self._cur_replay_size],
                 reward_kwargs=reward_kwargs
             )
+            # 純粋なintrinsic reward
             orig_rewards = rewards.copy()
-            rewards, postproc_dict = self.reward_postprocessing(rewards, reward_kwargs=reward_kwargs)
+            # 外部報酬
+            oracle_rewards = self._oracle_rewards[:self._cur_replay_size].squeeze()
+
+            # ブレンドなどはこの関数で行う
+            rewards, postproc_dict = self.reward_postprocessing(rewards, oracle_rewards, reward_kwargs=reward_kwargs)
             reward_diagnostics.update(postproc_dict)
             self._rewards[:self._cur_replay_size] = np.expand_dims(rewards, axis=-1)
 
             gt.stamp('intrinsic reward calculation', unique=False)
+
 
         """
         Train policy
@@ -319,8 +333,13 @@ class KbitMemoryTrainer(TorchTrainer):
                     orig_rewards[inds],
                 ))
                 self.eval_statistics.update(create_stats_ordered_dict(
-                    'Intrinsic Rewards (Processed)',
+                    'Total Rewards',
                     rewards[inds],
+                ))
+                 ## oracle rewardsも記録
+                self.eval_statistics.update(create_stats_ordered_dict(
+                    'Oracle Rewards',
+                    oracle_rewards[inds],
                 ))
 
         self._n_train_steps_total += 1
