@@ -5,17 +5,19 @@ from experiment_configs.algorithms.batch import get_algorithm
 import os
 
 num_epochs = 4
-policy_layer_size = 128
-discrim_layer_size = 128
-horizon = int(2000)
+policy_layer_size = 256
+discrim_layer_size = 256
+horizon = int(4000)
+policy_layer_num = 2
+discrim_layer_num = 2
 
 # ENV_NAME = 'Gridworld'
 # ENV_NAME = 'PartialFetchPickAndPlace'
-ENV_NAME = 'PartialHalfCheetah'
-partial_mode = 'ffoot' # vel or ffoot
+ENV_NAME = 'PartialHumanoid'
+partial_mode = 'vel' # vel or ffoot
 
 experiment_kwargs = dict(
-    exp_name='lstm-memory-ppo-{}-{}-p{}-d{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size)),
+    exp_name='lstm-memory-ppo-{}-{}-p{}-d{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(policy_layer_num)),
     num_seeds=1,
     instance_type='c4.4xlarge',
     use_gpu=True,
@@ -37,11 +39,11 @@ if __name__ == "__main__":
         policy_kwargs=dict(
             layer_size=policy_layer_size,
             latent_dim=policy_layer_size,
-            layer_num = 2,
+            layer_num = policy_layer_num,
         ),
         discriminator_kwargs=dict(
             layer_size=discrim_layer_size,
-            num_layers=2,
+            num_layers=discrim_layer_num,
             restrict_input_size=0,
         ),
         trainer_kwargs=dict(
@@ -71,7 +73,7 @@ if __name__ == "__main__":
             num_trains_per_train_loop=1,
             num_expl_steps_per_train_loop=horizon,
             min_num_steps_before_training=0,
-            max_path_length=200,
+            max_path_length=500,
             save_snapshot_freq=50,
         ),
     )

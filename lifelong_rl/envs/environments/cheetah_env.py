@@ -37,7 +37,7 @@ class PartialHalfCheetahEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         self._partial_mode = partial_mode
         mujoco_env.MujocoEnv.__init__(self, 'half_cheetah.xml', 5)
         utils.EzPickle.__init__(self)
-        self._partial_mode = partial_mode
+
         if partial_mode == "vel":
             self.hidden_state_dim = self.sim.data.qvel.shape[0]
         elif partial_mode == "ffoot":

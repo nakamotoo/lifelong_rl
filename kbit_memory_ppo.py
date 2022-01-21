@@ -8,11 +8,11 @@ num_epochs =  8
 policy_layer_size = 512
 discrim_layer_size = 512
 horizon = int(2000)
-memory_bit = 12
+memory_bit = 1
 
 # ENV_NAME = 'Gridworld'
 ENV_NAME = 'PartialHalfCheetah'
-partial_mode = 'ffoot'
+partial_mode = 'vel'
 
 experiment_kwargs = dict(
     exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit)),
@@ -38,6 +38,7 @@ if __name__ == "__main__":
         policy_kwargs=dict(
             layer_size=policy_layer_size,
             latent_dim=memory_bit,
+            layer_num = 2
         ),
         discriminator_kwargs=dict(
             layer_size=discrim_layer_size,
@@ -66,7 +67,7 @@ if __name__ == "__main__":
             normalize_advantages=True,
         ),
         algorithm_kwargs=dict(
-            num_epochs=15000,
+            num_epochs=10000,
             num_eval_steps_per_epoch=1000,
             num_trains_per_train_loop=1,
             num_expl_steps_per_train_loop=horizon,

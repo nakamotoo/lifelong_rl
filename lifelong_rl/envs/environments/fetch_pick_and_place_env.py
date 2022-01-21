@@ -111,15 +111,22 @@ class PartialFetchPickAndPlaceEnv(fetch_env.FetchEnv, utils.EzPickle):
             object_velr = self.sim.data.get_site_xvelr('object0') * dt
             # gripper state
             object_rel_pos = object_pos - grip_pos
-            object_velp -= grip_velp
+
+            # ここは相対速度ではなく絶対速度にした
+            # object_velp -= grip_velp
         else:
             object_pos = object_rot = object_velp = object_velr = object_rel_pos = np.zeros(0)
         gripper_state = robot_qpos[-2:]
         gripper_vel = robot_qvel[-2:] * dt  # change to a scalar if the gripper is made symmetric
+        # return np.concatenate([
+        #     object_pos.ravel(), object_rel_pos.ravel(), object_rot.ravel(),
+        #     object_velp.ravel(), object_velr.ravel(),
+        # ])
+
         return np.concatenate([
-            object_pos.ravel(), object_rel_pos.ravel(), object_rot.ravel(),
-            object_velp.ravel(), object_velr.ravel(),
+            object_pos.ravel(),  object_velp.ravel(),
         ])
+
 
     def _reset_sim(self):
         self.sim.set_state(self.initial_state)

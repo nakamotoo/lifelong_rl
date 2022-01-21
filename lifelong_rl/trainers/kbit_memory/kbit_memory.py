@@ -71,11 +71,8 @@ class KbitMemoryTrainer(TorchTrainer):
         self._actions = np.zeros((replay_size, self.action_dim + self.latent_dim)) # ここんのactionはa+w
         self._rewards = np.zeros((replay_size, 1))
         self._terminals = np.zeros((replay_size, 1))
-        if control_policy.std is None:
-            self._logprobs = np.zeros((replay_size, 1))
-        else:
-            # TODO: この200はmax_path_lengthを渡すようにfixすべし
-            self._logprobs = np.zeros((replay_size, 200, 1))
+        self._logprobs = np.zeros((replay_size,1))
+
         self._ptr = 0
         self.replay_size = replay_size
         self._cur_replay_size = 0
@@ -101,7 +98,6 @@ class KbitMemoryTrainer(TorchTrainer):
         self._latents[self._ptr] = latent
         self._next_latents[self._ptr] = next_latent
         self._terminals[self._ptr] = terminal
-
         if logprob is not None:
             self._logprobs[self._ptr] = logprob
 
@@ -259,7 +255,6 @@ class KbitMemoryTrainer(TorchTrainer):
         """
 
         state_latents = np.concatenate([self._obs, self._latents], axis=-1)[:self._cur_replay_size]
-        ## TODO: next latentsが必要？？
         next_state_latents = np.concatenate(
             [self._true_next_obs, self._next_latents], axis=-1)[:self._cur_replay_size]
 

@@ -2,6 +2,7 @@ import numpy as np
 import torch
 
 import lifelong_rl.torch.pytorch_util as ptu
+import itertools
 
 
 def calculate_contrastive_empowerment(
@@ -25,6 +26,13 @@ def calculate_contrastive_empowerment(
 
     discriminator.eval()
 
+    ### 2**memory_bit < num_priorだったら 全列挙
+    latent_dim = latents.shape[1]
+    path_len = latents.shape[0]
+    if 2 ** latent_dim <= num_prior_samples:
+        num_prior_samples = 2 ** latent_dim
+        distribution_type = "all"
+
     if obs_mean is not None:
         obs = (obs - obs_mean) / (obs_std + 1e-6)
         # next_obs = (next_obs - obs_mean) / (obs_std + 1e-6)
@@ -42,7 +50,9 @@ def calculate_contrastive_empowerment(
 
     if distribution_type == 'uniform':
         latent_altz = np.random.randint(low=0, high=2, size=(obs_altz.shape[0], latents.shape[1]))
-
+    elif distribution_type == 'all':
+        latent_altz = np.array([m for m in itertools.product([0, 1], repeat=latent_dim)])
+        latent_altz = np.repeat(latent_altz, path_len, axis=0)
 
     # keep track of next obs/delta
     next_obs_altz = np.concatenate([hidden_state] * num_prior_samples, axis=0)
