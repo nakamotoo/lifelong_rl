@@ -19,7 +19,7 @@ def make_env(env_name, terminates=True, **kwargs):
         base_env = HalfCheetahEnv
         env_infos['mujoco'] = True
     elif env_name == 'Ant':
-        from gym.envs.mujoco import AntEnv
+        from lifelong_rl.envs.environments.ant_env import AntEnv
         base_env = AntEnv
         env_infos['mujoco'] = True
     elif env_name == 'Hopper':
@@ -31,8 +31,7 @@ def make_env(env_name, terminates=True, **kwargs):
         base_env = InvertedPendulumEnv
         env_infos['mujoco'] = True
     elif env_name == 'Humanoid':
-        from lifelong_rl.envs.environments.humanoid_env import HumanoidTruncatedObsEnv as HumanoidEnv
-        from gym.envs.mujoco import HumanoidEnv
+        from lifelong_rl.envs.environments.humanoid_env import HumanoidEnv
         base_env = HumanoidEnv
         env_infos['mujoco'] = True
     elif env_name == 'FetchPickAndPlace':
@@ -72,6 +71,10 @@ def make_env(env_name, terminates=True, **kwargs):
     elif env_name == 'PartialAnt':
         from lifelong_rl.envs.environments.ant_env import PartialAntEnv
         base_env = PartialAntEnv
+        env_infos['mujoco'] = True
+    elif env_name == 'PartialHumanoid':
+        from lifelong_rl.envs.environments.humanoid_env import PartialHumanoidEnv
+        base_env = PartialHumanoidEnv
         env_infos['mujoco'] = True
 
     if env is None and base_env is None:

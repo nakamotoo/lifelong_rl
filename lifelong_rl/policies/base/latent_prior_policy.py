@@ -54,6 +54,7 @@ class PriorLatentPolicy(ExplorationPolicy):
         state = ptu.from_numpy(state)
         sz = torch.cat((state, latent))
         action, *_ = self.policy.forward(sz)
+        action = torch.squeeze(action) # ppoの場合actionが二次元になってしまうから
         return ptu.get_numpy(action), dict()
 
     def eval(self):

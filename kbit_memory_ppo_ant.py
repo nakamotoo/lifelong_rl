@@ -5,17 +5,17 @@ from experiment_configs.algorithms.batch import get_algorithm
 import os
 
 num_epochs =  8
-policy_layer_size = 512
-discrim_layer_size = 512
+policy_layer_size = 1024
+discrim_layer_size = 1024
 horizon = int(2000)
-memory_bit = 1
+memory_bit = 12
 
 # ENV_NAME = 'Gridworld'
-ENV_NAME = 'PartialHalfCheetah'
+ENV_NAME = 'PartialAnt'
 partial_mode = 'vel'
 
 experiment_kwargs = dict(
-    exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit)),
+    exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}bit'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit)),
     num_seeds=1,
     instance_type='c4.4xlarge',
     use_gpu=True,
@@ -67,7 +67,7 @@ if __name__ == "__main__":
             normalize_advantages=True,
         ),
         algorithm_kwargs=dict(
-            num_epochs=10000,
+            num_epochs=15000,
             num_eval_steps_per_epoch=1000,
             num_trains_per_train_loop=1,
             num_expl_steps_per_train_loop=horizon,

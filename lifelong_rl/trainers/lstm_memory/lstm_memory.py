@@ -72,11 +72,8 @@ class LSTMMemoryTrainer(TorchTrainer):
         self._actions = np.zeros((replay_size, self.action_dim)) # ここんのactionはa+w
         self._rewards = np.zeros((replay_size, 1))
         self._terminals = np.zeros((replay_size, 1))
-        if control_policy.std is None:
-            self._logprobs = np.zeros((replay_size, 1))
-        else:
-            # TODO: この200はmax_path_lengthを渡すようにfixすべし
-            self._logprobs = np.zeros((replay_size, 200, 1))
+        self._logprobs = np.zeros((replay_size, 1))
+
         self._ptr = 0
         self.replay_size = replay_size
         self._cur_replay_size = 0

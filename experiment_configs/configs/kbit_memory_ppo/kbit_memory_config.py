@@ -35,7 +35,7 @@ def get_config(
     control_policy = TanhGaussianPolicy(
         obs_dim=obs_dim + latent_dim,
         action_dim=action_dim + latent_dim,
-        hidden_sizes=[M, M],
+        hidden_sizes=[M] * variant['policy_kwargs']['layer_num'],
         restrict_obs_dim=restrict_dim,
         hidden_activation=torch.tanh,
         b_init_value=0,
@@ -65,7 +65,7 @@ def get_config(
     value_func = FlattenMlp(
         input_size=obs_dim + latent_dim,
         output_size=1,
-        hidden_sizes=[M, M],
+        hidden_sizes=[M] * variant['policy_kwargs']['layer_num'],
         hidden_activation=torch.tanh,
         hidden_init=ptu.orthogonal_init,
         b_init_value=0,
