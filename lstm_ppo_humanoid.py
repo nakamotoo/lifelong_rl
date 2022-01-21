@@ -11,8 +11,10 @@ horizon = int(4000)
 policy_layer_num = 2
 discrim_layer_num = 2
 
-# ENV_NAME = 'Gridworld'
-# ENV_NAME = 'PartialFetchPickAndPlace'
+intrinsic_reward_scale= 1  # increasing reward scale helps learning signal
+oracle_reward_scale = 0.5
+
+
 ENV_NAME = 'PartialHumanoid'
 partial_mode = 'vel' # vel or ffoot
 
@@ -53,7 +55,8 @@ if __name__ == "__main__":
             discrim_learning_rate=3e-4,
             policy_batch_size=512,
             reward_bounds=(-50, 50),
-            reward_scale=1,  # increasing reward scale helps learning signal
+            reward_scale=intrinsic_reward_scale,  # increasing reward scale helps learning signal
+            oracle_reward_scale = oracle_reward_scale
         ),
         policy_trainer_kwargs=dict(
             discount=0.99,
