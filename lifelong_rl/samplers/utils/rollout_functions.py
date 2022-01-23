@@ -28,7 +28,7 @@ def multitask_rollout(
     path_length = 0
     agent.reset()
     o = env.reset()
-    o = obs_process(o)
+    o = obs_process(o, env)
 
     if render:
         env.render(**render_kwargs)
@@ -74,9 +74,12 @@ def multitask_rollout(
         full_observations=dict_obs,
     )
 
-def obs_process(o):
+def obs_process(o, env):
     if isinstance(o, dict):
-        o = o["observation"]
+        if env.use_desired_goal:
+            o = np.concatenate([o["observation"], o["desired_goal"]])
+        else:
+            o = o["observation"]
     return o
 
 
@@ -113,7 +116,7 @@ def rollout(
     env_states = []
     o = env.reset()
     # robotics環境の時
-    o = obs_process(o)
+    o = obs_process(o, env)
 
     agent.reset()
     next_o = None
@@ -125,7 +128,7 @@ def rollout(
         if latent_dim is not None:
             a = a[:-latent_dim]
         next_o, r, d, env_info = env.step(a)
-        next_o = obs_process(next_o)
+        next_o = obs_process(next_o, env)
         observations.append(o)
         rewards.append(r)
         terminals.append(d)
@@ -198,7 +201,7 @@ def rollout_with_latent(
     latents = []
     env_states = []
     o = env.reset()
-    o = obs_process(o)
+    o = obs_process(o, env)
 
     agent.reset()
     next_o = None
@@ -210,7 +213,7 @@ def rollout_with_latent(
             agent.sample_latent()
         a, agent_info = agent.get_action(o)
         next_o, r, d, env_info = env.step(a)
-        next_o = obs_process(next_o)
+        next_o = obs_process(next_o, env)
         observations.append(o)
         rewards.append(r)
         terminals.append(d)
@@ -273,7 +276,7 @@ def rollout_with_kbit_memory(
     hidden_states = []
     env_states = []
     o = env.reset()
-    o = obs_process(o)
+    o = obs_process(o, env)
 
     agent.reset()
     latent_dim = agent._latent_dim
@@ -288,7 +291,7 @@ def rollout_with_kbit_memory(
         a, agent_info = agent.get_action(o)
         a, w = a[:-latent_dim], a[-latent_dim:] # split a into a_env and a_memory
         next_o, r, d, env_info = env.step(a)
-        next_o = obs_process(next_o)
+        next_o = obs_process(next_o, env)
         observations.append(o)
         hidden_states.append(hidden_s)
         rewards.append(r)
@@ -370,7 +373,7 @@ def rollout_with_lstm(
     hidden_states = []
     env_states = []
     o = env.reset()
-    o = obs_process(o)
+    o = obs_process(o, env)
 
     agent.reset()
     latent_dim = agent._latent_dim
@@ -384,7 +387,7 @@ def rollout_with_lstm(
         hidden_s = env._get_hidden_state()
         a, agent_info = agent.get_action(o)
         next_o, r, d, env_info = env.step(a)
-        next_o = obs_process(next_o)
+        next_o = obs_process(next_o, env)
         observations.append(o)
         hidden_states.append(hidden_s)
         rewards.append(r)

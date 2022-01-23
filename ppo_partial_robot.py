@@ -7,7 +7,7 @@ import os
 num_epochs =  4
 horizon = int(4000)
 policy_layer_size = 512
-policy_num_layer = 3
+policy_num_layer = 2
 
 ENV_NAME = 'PartialFetchPickAndPlace'
 
@@ -26,6 +26,7 @@ if __name__ == "__main__":
         env_name=ENV_NAME,
         env_kwargs=dict(
             terminates=False,
+            use_desired_goal = True
         ),
         replay_buffer_size=horizon,
         policy_kwargs=dict(

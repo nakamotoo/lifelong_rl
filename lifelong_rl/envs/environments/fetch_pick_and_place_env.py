@@ -12,7 +12,7 @@ MODEL_XML_PATH = os.path.join('fetch', 'pick_and_place.xml')
 # action: 4
 
 class FetchPickAndPlaceEnv(fetch_env.FetchEnv, utils.EzPickle):
-    def __init__(self, reward_type='sparse'):
+    def __init__(self, reward_type='sparse', use_desired_goal = True):
         initial_qpos = {
             'robot0:slide0': 0.405,
             'robot0:slide1': 0.48,
@@ -25,6 +25,7 @@ class FetchPickAndPlaceEnv(fetch_env.FetchEnv, utils.EzPickle):
             obj_range=0.15, target_range=0.15, distance_threshold=0.05,
             initial_qpos=initial_qpos, reward_type=reward_type)
         utils.EzPickle.__init__(self)
+        self.use_desired_goal = use_desired_goal
 
     def _reset_sim(self):
         self.sim.set_state(self.initial_state)
@@ -43,7 +44,7 @@ class FetchPickAndPlaceEnv(fetch_env.FetchEnv, utils.EzPickle):
         return True
 
 class PartialFetchPickAndPlaceEnv(fetch_env.FetchEnv, utils.EzPickle):
-    def __init__(self, reward_type='sparse'):
+    def __init__(self, reward_type='sparse', use_desired_goal=False):
         initial_qpos = {
             'robot0:slide0': 0.405,
             'robot0:slide1': 0.48,
@@ -57,6 +58,7 @@ class PartialFetchPickAndPlaceEnv(fetch_env.FetchEnv, utils.EzPickle):
             initial_qpos=initial_qpos, reward_type=reward_type)
         utils.EzPickle.__init__(self)
         self.hidden_state_dim = self._get_hidden_state().shape[0]
+        self.use_desired_goal = use_desired_goal
 
     def _get_obs(self):
         # positions
