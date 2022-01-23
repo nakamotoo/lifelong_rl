@@ -5,20 +5,20 @@ from experiment_configs.algorithms.batch import get_algorithm
 import os
 
 num_epochs = 4
-policy_layer_size = 256
-layer_division = 1
-discrim_layer_size = 256
+policy_layer_size = 512
+layer_division = 2
+discrim_layer_size = 512
 horizon = int(4000)
-policy_num_layer = 3
-discrim_num_layer = 3
+policy_num_layer = 2
+discrim_num_layer = 2
 
-intrinsic_reward_scale= 1  # increasing reward scale helps learning signal
-oracle_reward_scale = 0.5
+intrinsic_reward_scale= 3  # increasing reward scale helps learning signal
+oracle_reward_scale = 1
 
 ENV_NAME = 'PartialFetchPickAndPlace'
 
 if oracle_reward_scale > 0:
-    exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-{}-blend'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer, str(discrim_layer_size), str(layer_divison)))
+    exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-{}-blend-{}-{}'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer), str(discrim_layer_size), str(layer_division), str(intrinsic_reward_scale), str(oracle_reward_scale))
 else:
     exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-{}'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer, str(discrim_layer_size), str(layer_divison)))
 
@@ -75,7 +75,7 @@ if __name__ == "__main__":
             normalize_advantages=True,
         ),
         algorithm_kwargs=dict(
-            num_epochs=20000,
+            num_epochs=10000,
             num_eval_steps_per_epoch=1000,
             num_trains_per_train_loop=1,
             num_expl_steps_per_train_loop=horizon,
