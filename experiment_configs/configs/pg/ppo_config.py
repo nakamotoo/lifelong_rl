@@ -17,13 +17,23 @@ def get_config(
 ):
 
     M = variant['policy_kwargs']['layer_size']
+    layer_division = variant['policy_kwargs']['layer_division']
+    policy_hidden_sizes = []
+    for i in range(variant['policy_kwargs']['layer_num']):
+        if i == 0:
+            policy_hidden_sizes.append(M)
+        else:
+            policy_hidden_sizes.append(M // layer_division)
+
+    print("policy_hidden_sizes", policy_hidden_sizes)
+
 
     # PPO is very finicky with weight initializations
 
     policy = TanhGaussianPolicy(
         obs_dim=obs_dim,
         action_dim=action_dim,
-        hidden_sizes=[M] * variant['policy_kwargs']['layer_num'],
+        hidden_sizes=policy_hidden_sizes,
         hidden_activation=torch.tanh,
         b_init_value=0,
         w_scale=1.41,
@@ -33,12 +43,12 @@ def get_config(
         hidden_init=ptu.orthogonal_init,
     )
 
-    M = variant['value_kwargs']['layer_size']
+    # M = variant['value_kwargs']['layer_size']
 
     value_func = FlattenMlp(
         input_size=obs_dim,
         output_size=1,
-        hidden_sizes=[M, M],
+        hidden_sizes=policy_hidden_sizes,
         hidden_activation=torch.tanh,
         hidden_init=ptu.orthogonal_init,
         b_init_value=0,

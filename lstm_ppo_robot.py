@@ -8,26 +8,29 @@ num_epochs = 4
 policy_layer_size = 512
 discrim_layer_size = 512
 horizon = int(4000)
-policy_num_layer = 1
-discrim_num_layer = 1
-layer_division = 1
+policy_num_layer = 2
+discrim_num_layer = 2
+layer_division = 2
 
+# PartialPickAndPlace
+# PartialPush
+# PartialSlide
 
-
-intrinsic_reward_scale= 1  # increasing reward scale helps learning signal
-oracle_reward_scale = 0
+ENV_NAME = 'PartialPush'
+intrinsic_reward_scale= 3  # increasing reward scale helps learning signal
+oracle_reward_scale = 1
 
 
 if policy_num_layer == 1:
     assert layer_division == 1
 
-ENV_NAME = 'PartialFetchPickAndPlace'
+
 
 if oracle_reward_scale > 0:
-    exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-{}-blend-{}-{}'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer), str(discrim_layer_size), str(layer_division), str(intrinsic_reward_scale), str(oracle_reward_scale))
+    exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-div{}-blend-i{}-o{}'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer), str(discrim_layer_size), str(layer_division), str(intrinsic_reward_scale), str(oracle_reward_scale))
     use_desired_goal = True
 else:
-    exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-{}'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer), str(discrim_layer_size), str(layer_division))
+    exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-div{}'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer), str(discrim_layer_size), str(layer_division))
     use_desired_goal = False
 
 

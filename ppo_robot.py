@@ -7,12 +7,16 @@ import os
 num_epochs =  4
 horizon = int(4000)
 policy_layer_size = 512
-policy_num_layer = 2
+policy_num_layer = 3
+layer_division = 2
 
-ENV_NAME = 'PartialFetchPickAndPlace'
+# PickAndPlace, PartialPickAndPlace
+# Push, PartialPush
+# Slide, PartialSlide
+ENV_NAME = 'PartialSlide'
 
 experiment_kwargs = dict(
-    exp_name='ppo-oracle-{}-p{}-{}'.format(ENV_NAME, str(policy_layer_size), str(policy_num_layer)),
+    exp_name='ppo-oracle-{}-p{}-num{}-div{}'.format(ENV_NAME, str(policy_layer_size), str(policy_num_layer), str(layer_division)),
     num_seeds=1,
     instance_type='c4.4xlarge',
     use_gpu=True,
@@ -31,7 +35,8 @@ if __name__ == "__main__":
         replay_buffer_size=horizon,
         policy_kwargs=dict(
             layer_size=policy_layer_size,
-            layer_num = policy_num_layer
+            layer_num = policy_num_layer,
+            layer_division = layer_division
         ),
         value_kwargs=dict(
             layer_size=policy_layer_size,
