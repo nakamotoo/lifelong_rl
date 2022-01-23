@@ -23,7 +23,7 @@ def get_config(
     policy = TanhGaussianPolicy(
         obs_dim=obs_dim,
         action_dim=action_dim,
-        hidden_sizes=[M, M],
+        hidden_sizes=[M] * variant['policy_kwargs']['layer_num'],
         hidden_activation=torch.tanh,
         b_init_value=0,
         w_scale=1.41,

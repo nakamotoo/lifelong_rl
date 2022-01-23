@@ -5,19 +5,19 @@ from experiment_configs.algorithms.batch import get_algorithm
 import os
 
 num_epochs = 4
-policy_layer_size = 64
-layer_division = 4
+policy_layer_size = 128
+layer_division = 2
 discrim_layer_size = 256
 horizon = int(2000)
 
-intrinsic_reward_scale= 1  # increasing reward scale helps learning signal
-oracle_reward_scale = 0.5
+intrinsic_reward_scale= 3  # increasing reward scale helps learning signal
+oracle_reward_scale = 1
 
 ENV_NAME = 'PartialHalfCheetah'
-partial_mode = 'vel' # vel or ffoot
+partial_mode = 'ffoot' # vel or ffoot
 
 if oracle_reward_scale > 0:
-    exp_name='lstm-memory-ppo-{}-{}-p{}-d{}-{}-blend'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(layer_division))
+    exp_name='lstm-memory-ppo-{}-{}-p{}-d{}-{}-blend-{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(layer_division), str(intrinsic_reward_scale), str(oracle_reward_scale))
 else:
     exp_name='lstm-memory-ppo-{}-{}-p{}-d{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(layer_division))
 

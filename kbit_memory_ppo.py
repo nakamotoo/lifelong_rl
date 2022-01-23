@@ -8,17 +8,17 @@ num_epochs =  8
 policy_layer_size = 512
 discrim_layer_size = 512
 horizon = int(2000)
-memory_bit = 1
+memory_bit = 12
 
-intrinsic_reward_scale= 1  # increasing reward scale helps learning signal
+intrinsic_reward_scale= 3  # increasing reward scale helps learning signal
 oracle_reward_scale = 0.5
 
 # ENV_NAME = 'Gridworld'
 ENV_NAME = 'PartialHalfCheetah'
-partial_mode = 'vel'
+partial_mode = 'ffoot'
 
 if oracle_reward_scale > 0:
-    exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}-blend'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit))
+    exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}-blend-{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit), str(intrinsic_reward_scale), str(oracle_reward_scale))
 else:
     exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit))
 

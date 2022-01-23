@@ -4,18 +4,19 @@ from experiment_configs.configs.pg.ppo_config import get_config
 from experiment_configs.algorithms.batch import get_algorithm
 import os
 
-num_epochs =  8
-horizon = int(2000)
+num_epochs =  4
+horizon = int(4000)
 policy_layer_size = 512
+policy_num_layer = 3
 
-ENV_NAME = 'PartialHalfCheetah'
+ENV_NAME = 'PartialFetchPickAndPlace'
+
 experiment_kwargs = dict(
-    exp_name='ppo-cheetah-partial',
+    exp_name='ppo-oracle-{}-p{}-{}'.format(ENV_NAME, str(policy_layer_size), str(policy_num_layer)),
     num_seeds=1,
     instance_type='c4.4xlarge',
-    use_gpu=False,
+    use_gpu=True,
 )
-
 
 if __name__ == "__main__":
     os.environ["CUDA_VISIBLE_DEVICES"]='0'
@@ -23,10 +24,13 @@ if __name__ == "__main__":
         algorithm='PPO',
         collector_type='batch',
         env_name=ENV_NAME,
-        env_kwargs=dict(),
+        env_kwargs=dict(
+            terminates=False,
+        ),
         replay_buffer_size=horizon,
         policy_kwargs=dict(
             layer_size=policy_layer_size,
+            layer_num = policy_num_layer
         ),
         value_kwargs=dict(
             layer_size=policy_layer_size,
