@@ -34,11 +34,19 @@ def make_env(env_name, terminates=True, **kwargs):
         from lifelong_rl.envs.environments.humanoid_env import HumanoidEnv
         base_env = HumanoidEnv
         env_infos['mujoco'] = True
-    elif env_name == 'FetchPickAndPlace':
+    elif env_name == 'PickAndPlace':
         from lifelong_rl.envs.environments.fetch_pick_and_place_env import FetchPickAndPlaceEnv
-        # from gym.envs.robotics import FetchPickAndPlaceEnv
         base_env = FetchPickAndPlaceEnv
         env_infos['mujoco'] = True
+    elif env_name == 'Push':
+        from lifelong_rl.envs.environments.push_env import FetchPushEnv
+        base_env = FetchPushEnv
+        env_infos['mujoco'] = True
+    elif env_name == 'Slide':
+        from lifelong_rl.envs.environments.slide_env import FetchSlideEnv
+        base_env = FetchSlideEnv
+        env_infos['mujoco'] = True
+
 
     """
     Lifelong reinforcement learning
@@ -63,10 +71,18 @@ def make_env(env_name, terminates=True, **kwargs):
         from lifelong_rl.envs.environments.cheetah_env import PartialHalfCheetahEnv
         base_env = PartialHalfCheetahEnv
         env_infos['mujoco'] = True
-    elif env_name == 'PartialFetchPickAndPlace':
+    elif env_name == 'PartialPickAndPlace':
         from lifelong_rl.envs.environments.fetch_pick_and_place_env import PartialFetchPickAndPlaceEnv
         # from gym.envs.robotics import FetchPickAndPlaceEnv
         base_env = PartialFetchPickAndPlaceEnv
+        env_infos['mujoco'] = True
+    elif env_name == 'PartialPush':
+        from lifelong_rl.envs.environments.push_env import PartialFetchPushEnv
+        base_env = PartialFetchPushEnv
+        env_infos['mujoco'] = True
+    elif env_name == 'PartialSlide':
+        from lifelong_rl.envs.environments.slide_env import PartialFetchSlideEnv
+        base_env = PartialFetchSlideEnv
         env_infos['mujoco'] = True
     elif env_name == 'PartialAnt':
         from lifelong_rl.envs.environments.ant_env import PartialAntEnv

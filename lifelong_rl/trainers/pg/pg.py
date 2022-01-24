@@ -44,6 +44,9 @@ class PGTrainer(TorchTrainer):
 
         self.env = env
         self.obs_dim = get_dim(self.env.observation_space)
+        if hasattr(self.env, "use_desired_goal") and self.env.use_desired_goal:
+            self.obs_dim += self.env.observation_space["desired_goal"].shape[0]
+
         self.action_dim = self.env.action_space.shape[0] if action_dim is None else action_dim
         self.policy = policy
         self.value_func = value_func

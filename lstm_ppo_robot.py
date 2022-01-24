@@ -6,21 +6,34 @@ import os
 
 num_epochs = 4
 policy_layer_size = 512
-layer_division = 2
 discrim_layer_size = 512
 horizon = int(4000)
 policy_num_layer = 2
 discrim_num_layer = 2
+layer_division = 2
 
+# PartialPickAndPlace
+# PartialPush
+# PartialSlide
+
+ENV_NAME = 'PartialPush'
 intrinsic_reward_scale= 3  # increasing reward scale helps learning signal
 oracle_reward_scale = 1
 
-ENV_NAME = 'PartialFetchPickAndPlace'
+
+if policy_num_layer == 1:
+    assert layer_division == 1
+
+
 
 if oracle_reward_scale > 0:
-    exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-{}-blend-{}-{}'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer), str(discrim_layer_size), str(layer_division), str(intrinsic_reward_scale), str(oracle_reward_scale))
+    exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-div{}-blend-i{}-o{}'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer), str(discrim_layer_size), str(layer_division), str(intrinsic_reward_scale), str(oracle_reward_scale))
+    use_desired_goal = True
 else:
-    exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-{}'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer, str(discrim_layer_size), str(layer_divison)))
+    exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-div{}'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer), str(discrim_layer_size), str(layer_division))
+    use_desired_goal = False
+
+
 
 experiment_kwargs = dict(
     exp_name=exp_name,
@@ -40,6 +53,7 @@ if __name__ == "__main__":
         env_name=ENV_NAME,
         env_kwargs=dict(
             terminates=False,
+            use_desired_goal = use_desired_goal
         ),
         policy_kwargs=dict(
             layer_size=policy_layer_size,

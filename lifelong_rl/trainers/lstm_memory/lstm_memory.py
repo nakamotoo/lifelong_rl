@@ -166,7 +166,6 @@ class LSTMMemoryTrainer(TorchTrainer):
                 ptu.from_numpy(actions),
             )
             log_probs = ptu.get_numpy(log_probs)
-
             for t in range(path_len):
                 self.add_sample(
                     obs[t],

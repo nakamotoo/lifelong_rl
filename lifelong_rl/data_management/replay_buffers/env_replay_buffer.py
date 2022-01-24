@@ -24,6 +24,11 @@ class EnvReplayBuffer(SimpleReplayBuffer):
         elif isinstance(env.observation_space, Dict):
             self._ob_space = env.observation_space["observation"]
 
+            if env.use_desired_goal:
+                obs_dim = self._ob_space.shape[0]
+                goal_dim = env.observation_space["desired_goal"].shape[0]
+                self._ob_space = Box(low=-np.inf, high=np.inf, shape=(obs_dim+goal_dim,))
+
         self._action_space = env.action_space
         self._meta_infos = []
 

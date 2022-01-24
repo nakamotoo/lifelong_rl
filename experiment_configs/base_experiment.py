@@ -71,6 +71,14 @@ def experiment(
     obs_dim = get_dim(expl_env.observation_space)
     action_dim = get_dim(expl_env.action_space)
 
+    if variant.get('env_kwargs').get("use_desired_goal") is not None:
+        use_desired_goal = expl_env.use_desired_goal
+        print("use_desired_goal:", use_desired_goal)
+        if use_desired_goal:
+            desired_goal_dim = expl_env.observation_space["desired_goal"].shape[0]
+            obs_dim += desired_goal_dim
+            print("desired_goal_dim", desired_goal_dim)
+
     print("obs_dim, action_dim =", obs_dim, action_dim)
 
     if env_infos['mujoco']:
