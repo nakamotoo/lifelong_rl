@@ -10,14 +10,19 @@ discrim_layer_size = 512
 horizon = int(2000)
 memory_bit = 12
 
-intrinsic_reward_scale= 3  # increasing reward scale helps learning signal
-oracle_reward_scale = 0.5
+intrinsic_reward_scale= 1  # increasing reward scale helps learning signal
+oracle_reward_scale = 1
 
-# ENV_NAME = 'Gridworld'
 ENV_NAME = 'PartialHalfCheetah'
-partial_mode = 'ffoot'
+partial_mode = 'vel'
 
-if oracle_reward_scale > 0:
+is_downstream = False
+# robin1 前に走るmodel
+load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-20-kbit-memory-ppo-PartialHalfCheetah-p512-d512/01-20-kbit-memory-ppo-PartialHalfCheetah-p512-d512_2022_01_20_13_09_44_0000--s-37857306/itr_9999"
+
+if is_downstream:
+    exp_name='kbit-memory-ppo-{}-{}-{}-downstream'.format(str(ENV_NAME), str(partial_mode), str(memory_bit))
+elif oracle_reward_scale > 0:
     exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}-blend-{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit), str(intrinsic_reward_scale), str(oracle_reward_scale))
 else:
     exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit))
@@ -61,7 +66,9 @@ if __name__ == "__main__":
             policy_batch_size=512,
             reward_bounds=(-50, 50),
             reward_scale=intrinsic_reward_scale,  # increasing reward scale helps learning signal
-            oracle_reward_scale = oracle_reward_scale # cheetahのoracle rewardはだいたい5-7くらい
+            oracle_reward_scale = oracle_reward_scale, # cheetahのoracle rewardはだいたい5-7くらい
+            is_downstream = is_downstream, # downstream: fintune with oracle reward
+            load_model_path = load_model_path
         ),
         policy_trainer_kwargs=dict(
             discount=0.99,
