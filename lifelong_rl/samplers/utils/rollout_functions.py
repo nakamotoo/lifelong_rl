@@ -116,6 +116,7 @@ def rollout(
     env_states = []
     o = env.reset()
     # robotics環境の時
+    achieved_goals = []
     o = obs_process(o, env)
 
     agent.reset()
@@ -128,6 +129,9 @@ def rollout(
         if latent_dim is not None:
             a = a[:-latent_dim]
         next_o, r, d, env_info = env.step(a)
+        if hasattr(env, "use_desired_goal"):
+            ag = next_o["achieved_goal"]
+            achieved_goals.append(ag)
         next_o = obs_process(next_o, env)
         observations.append(o)
         rewards.append(r)
@@ -150,6 +154,9 @@ def rollout(
     if len(observations.shape) == 1:
         observations = np.expand_dims(observations, 1)
         next_o = np.array([next_o])
+    achieved_goals = np.array(achieved_goals)
+    if len(achieved_goals.shape) == 1:
+        achieved_goals = np.expand_dims(achieved_goals, 1)
     next_observations = np.vstack(
         (
             observations[1:, :],
@@ -164,7 +171,8 @@ def rollout(
         terminals=np.array(terminals).reshape(-1, 1),
         agent_infos=agent_infos,
         env_infos=env_infos,
-        env_states = env_states
+        env_states = env_states,
+        achieved_goals = achieved_goals
     )
 
 
@@ -373,6 +381,7 @@ def rollout_with_lstm(
     hidden_states = []
     env_states = []
     o = env.reset()
+    achieved_goals = []
     o = obs_process(o, env)
 
     agent.reset()
@@ -387,6 +396,11 @@ def rollout_with_lstm(
         hidden_s = env._get_hidden_state()
         a, agent_info = agent.get_action(o)
         next_o, r, d, env_info = env.step(a)
+
+        if hasattr(env, "use_desired_goal"):
+            ag = next_o["achieved_goal"]
+            achieved_goals.append(ag)
+
         next_o = obs_process(next_o, env)
         observations.append(o)
         hidden_states.append(hidden_s)
@@ -418,7 +432,9 @@ def rollout_with_lstm(
     hidden_states = np.array(hidden_states)
     if len(hidden_states.shape) == 1:
         hidden_states = np.expand_dims(hidden_states, 1)
-
+    achieved_goals = np.array(achieved_goals)
+    if len(achieved_goals.shape) == 1:
+        achieved_goals = np.expand_dims(achieved_goals, 1)
     next_observations = np.vstack(
         (
             observations[1:, :],
@@ -436,6 +452,7 @@ def rollout_with_lstm(
         latents=np.array(latents),
         env_states = env_states,
         hidden_states = hidden_states,
-        next_latents = next_latents
+        next_latents = next_latents,
+        achieved_goals = achieved_goals
     )
 

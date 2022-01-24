@@ -1,6 +1,8 @@
 from experiment_utils.launch_experiment import launch_experiment
 
-from experiment_configs.configs.pg.ppo_config import get_config
+from experiment_configs.configs.ppo_her.ppo_her_config import get_config
+# from experiment_configs.configs.pg.ppo_config import get_config
+
 from experiment_configs.algorithms.batch import get_algorithm
 import os
 
@@ -37,6 +39,9 @@ if __name__ == "__main__":
             layer_size=policy_layer_size,
             layer_num = policy_num_layer,
             layer_division = layer_division
+        ),
+        trainer_kwargs = dict(
+
         ),
         value_kwargs=dict(
             layer_size=policy_layer_size,

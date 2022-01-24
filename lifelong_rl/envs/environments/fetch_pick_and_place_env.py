@@ -124,7 +124,6 @@ class PartialFetchPickAndPlaceEnv(fetch_env.FetchEnv, utils.EzPickle):
         #     object_pos.ravel(), object_rel_pos.ravel(), object_rot.ravel(),
         #     object_velp.ravel(), object_velr.ravel(),
         # ])
-
         return np.concatenate([
             object_pos.ravel(),  object_velp.ravel(),
         ])

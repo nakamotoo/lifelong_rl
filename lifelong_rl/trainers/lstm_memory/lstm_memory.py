@@ -1,6 +1,7 @@
 import gtimer as gt
 import numpy as np
 import torch
+import copy
 
 from collections import OrderedDict
 
@@ -95,10 +96,15 @@ class LSTMMemoryTrainer(TorchTrainer):
         self._train_calls = 0
         self._algorithm = algorithm
         self.path_len = path_len
-        print("LSTM Memory, algorithm", algorithm)
+        self.relabel_goal = False
+        if hasattr(self.policy_trainer.env, "use_desired_goal") and self.policy_trainer.env.use_desired_goal:
+            self.relabel_goal = True
+
+        print("LSTM Memory, algorithm:", algorithm)
+        print("relabel goal:", self.relabel_goal)
 
 
-    def add_sample(self, obs, hidden_s, true_next_obs, action, latent, logprob=None, terminal=None, oracle_reward=None, **kwargs):
+    def add_sample(self, obs, hidden_s, true_next_obs, action, latent, reward, logprob=None, terminal=None, oracle_reward=None, **kwargs):
         self._obs[self._ptr] = obs
         self._hidden_states[self._ptr] = hidden_s
         self._true_next_obs[self._ptr] = true_next_obs
@@ -110,6 +116,7 @@ class LSTMMemoryTrainer(TorchTrainer):
             self._logprobs[self._ptr] = logprob
 
         self._oracle_rewards[self._ptr] = oracle_reward
+        self._rewards[self._ptr] = reward
 
         self._ptr = (self._ptr + 1) % self.replay_size
         self._cur_replay_size = min(self._cur_replay_size+1, self.replay_size)
@@ -118,6 +125,10 @@ class LSTMMemoryTrainer(TorchTrainer):
         if self.restrict_input_size > 0:
             states = states[:,:self.restrict_input_size]
             hidden_states = hidden_states[:,:self.restrict_input_size]
+
+        if self.relabel_goal:
+            states = states[:,:-3]
+
         if self.reward_mode is None:
             reward_func = calculate_contrastive_empowerment
         else:
@@ -150,10 +161,9 @@ class LSTMMemoryTrainer(TorchTrainer):
         Reading new paths: append latent to state
         Note that is equivalent to on-policy when latent buffer size = sum of paths length
         """
-
-
         epoch_obs, epoch_next_obs, epoch_latents = [], [], []
 
+        paths = copy.deepcopy(paths)
         for path in paths:
             obs = path['observations']
             next_obs = path['next_observations']
@@ -163,6 +173,26 @@ class LSTMMemoryTrainer(TorchTrainer):
             path_len = len(obs) - self.empowerment_horizon + 1
             terminals = path['terminals']
             oracle_rewards = path["rewards"]
+            rewards = copy.deepcopy(path["rewards"])
+
+
+            ## goal relabeling with HER
+            ## unsupervised pretrain では, rewardはintrinsicで計算するのでrelabelしなくていい
+            ### goal は relabel
+            if self.relabel_goal:
+                achieved_goals = path["achieved_goals"]
+                relabeled_desired_goals = []
+                for i in range(path_len):
+                    goal_ind = np.random.randint(i, path_len)
+                    obs[i, -3:] = achieved_goals[goal_ind]
+                    next_obs[i, -3:] = achieved_goals[goal_ind]
+                    relabeled_desired_goals.append(achieved_goals[goal_ind])
+                relabeled_desired_goals = np.array(relabeled_desired_goals)
+
+            # downstramの場合は、rewardのrelabel必要
+            if self.relabel_goal and self.is_downstream:
+                distance = np.linalg.norm(achieved_goals - relabeled_desired_goals, axis=-1)
+                rewards = -(distance > 0.05).astype(np.float32)
 
             log_probs = self.control_policy.get_log_probs(
                 ptu.from_numpy(obs),
@@ -176,6 +206,7 @@ class LSTMMemoryTrainer(TorchTrainer):
                     next_obs[t],
                     actions[t],
                     latents[t],
+                    rewards[t],
                     logprob=log_probs[t],
                     terminal = terminals[t],
                     oracle_reward = oracle_rewards[t]
@@ -214,6 +245,10 @@ class LSTMMemoryTrainer(TorchTrainer):
             if self.restrict_input_size > 0:
                 batch['obs'] = batch['obs'][:, :self.restrict_input_size]
                 batch['hidden_states'] = batch['hidden_states'][:, :self.restrict_input_size]
+
+        # discriminatorの入力にはdesired goalはいらない
+            if self.relabel_goal:
+                batch['obs'] = batch['obs'][:, :-3]
 
             # we embedded the latent in the observation, so (s, z) -> (delta s')
             discrim_loss = self.discriminator.get_loss(
@@ -330,6 +365,11 @@ class LSTMMemoryTrainer(TorchTrainer):
                 'Oracle Rewards',
                 oracle_rewards,
             ))
+            if self.is_downstream:
+                self.eval_statistics.update(create_stats_ordered_dict(
+                    'Relabeled Rewards',
+                    self._rewards[:self._cur_replay_size].squeeze(),
+                ))
 
         self._n_train_steps_total += 1
 

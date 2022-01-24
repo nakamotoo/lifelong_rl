@@ -17,8 +17,8 @@ layer_division = 2
 # PartialSlide
 
 ENV_NAME = 'PartialPickAndPlace'
-intrinsic_reward_scale= 3  # increasing reward scale helps learning signal
-oracle_reward_scale = 1
+intrinsic_reward_scale= 1  # increasing reward scale helps learning signal
+oracle_reward_scale = 0
 
 is_downstream = True
 # robin1 PickAndPlace blending
@@ -36,7 +36,7 @@ elif oracle_reward_scale > 0:
     use_desired_goal = True
 else:
     exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-div{}'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer), str(discrim_layer_size), str(layer_division))
-    use_desired_goal = False
+    use_desired_goal = True
 
 
 

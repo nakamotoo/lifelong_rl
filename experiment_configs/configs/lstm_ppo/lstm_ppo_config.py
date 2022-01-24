@@ -9,6 +9,7 @@ from lifelong_rl.trainers.lstm_memory.state_predictor import StatePredictor
 from lifelong_rl.trainers.pg.ppo_lstm import PPOLSTMTrainer
 import lifelong_rl.torch.pytorch_util as ptu
 import lifelong_rl.util.pythonplusplus as ppp
+from lifelong_rl.envs.env_utils import get_dim
 
 
 def get_config(
@@ -34,15 +35,14 @@ def get_config(
         else:
             policy_hidden_sizes.append(M // layer_division)
 
-
     latent_dim = variant['policy_kwargs']['latent_dim']
     restrict_dim = variant['discriminator_kwargs']['restrict_input_size']
 
     hidden_state_dim = expl_env.hidden_state_dim
-
+    discrim_dim = get_dim(expl_env.observation_space)
     is_downstream = variant['trainer_kwargs']["is_downstream"]
     print("is_downstream:", is_downstream)
-    print("obs_dim, action_dim, hidden_state_dim = ", obs_dim, action_dim, hidden_state_dim)
+    print("obs_dim, action_dim, hidden_state_dim, discrim_dim = ", obs_dim, action_dim, hidden_state_dim, discrim_dim)
     print("policy_hidden_sizes", policy_hidden_sizes)
 
     if is_downstream:
@@ -85,7 +85,7 @@ def get_config(
 
         discrim_kwargs = variant['discriminator_kwargs']
         discriminator = StatePredictor(
-            observation_size=obs_dim,
+            observation_size=discrim_dim,
             latent_size=latent_dim,
             hidden_state_size = hidden_state_dim,
             normalize_observations=discrim_kwargs.get('normalize_observations', True),
