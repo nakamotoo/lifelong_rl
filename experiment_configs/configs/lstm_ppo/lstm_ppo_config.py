@@ -40,52 +40,62 @@ def get_config(
 
     hidden_state_dim = expl_env.hidden_state_dim
 
+    is_downstream = variant['trainer_kwargs']["is_downstream"]
+    print("is_downstream:", is_downstream)
     print("obs_dim, action_dim, hidden_state_dim = ", obs_dim, action_dim, hidden_state_dim)
     print("policy_hidden_sizes", policy_hidden_sizes)
 
+    if is_downstream:
+        load_model_path = variant['trainer_kwargs']["load_model_path"]
+        with open(load_model_path + '.pt', 'rb') as f:
+            print("loading snapshot from:", load_model_path)
+            snapshot = torch.load(f, map_location='cpu')
+        control_policy = snapshot["trainer/policy_trainer/policy"]
+        value_func = snapshot["trainer/policy_trainer/value_func"]
+        discriminator = None
+    else:
+    # 通常のTanhGaussianPolicyにlstmを組み込む
+    # pi (a | o)
+        control_policy = LSTMGaussianPolicy(
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+            hidden_sizes=policy_hidden_sizes,
+            restrict_obs_dim=restrict_dim,
+            hidden_activation=torch.tanh,
+            b_init_value=0,
+            w_scale=1.41,
+            init_w=0.01,
+            final_init_scale=0.01,
+            std=0.5,
+            hidden_init=ptu.orthogonal_init,
+        )
 
-# 通常のTanhGaussianPolicyにlstmを組み込む
-# pi (a | o)
-    control_policy = LSTMGaussianPolicy(
-        obs_dim=obs_dim,
-        action_dim=action_dim,
-        hidden_sizes=policy_hidden_sizes,
-        restrict_obs_dim=restrict_dim,
-        hidden_activation=torch.tanh,
-        b_init_value=0,
-        w_scale=1.41,
-        init_w=0.01,
-        final_init_scale=0.01,
-        std=0.5,
-        hidden_init=ptu.orthogonal_init,
-    )
+        value_func = FlattenLSTMMlp(
+            input_size=obs_dim,
+            output_size=1,
+            hidden_sizes=policy_hidden_sizes,
+            hidden_activation=torch.tanh,
+            hidden_init=ptu.orthogonal_init,
+            b_init_value=0,
+            final_init_scale=1,
+        )
+        """
+        Discriminator
+        """
+
+        discrim_kwargs = variant['discriminator_kwargs']
+        discriminator = StatePredictor(
+            observation_size=obs_dim,
+            latent_size=latent_dim,
+            hidden_state_size = hidden_state_dim,
+            normalize_observations=discrim_kwargs.get('normalize_observations', True),
+            fix_variance=discrim_kwargs.get('fix_variance', True),
+            fc_layer_params=[discrim_kwargs['layer_size']] * discrim_kwargs['num_layers'],
+        )
 
     policy = LSTMMemoryPolicy(
         policy=control_policy,
         latent_dim=latent_dim,
-    )
-
-    value_func = FlattenLSTMMlp(
-        input_size=obs_dim,
-        output_size=1,
-        hidden_sizes=policy_hidden_sizes,
-        hidden_activation=torch.tanh,
-        hidden_init=ptu.orthogonal_init,
-        b_init_value=0,
-        final_init_scale=1,
-    )
-    """
-    Discriminator
-    """
-
-    discrim_kwargs = variant['discriminator_kwargs']
-    discriminator = StatePredictor(
-        observation_size=obs_dim,
-        latent_size=latent_dim,
-        hidden_state_size = hidden_state_dim,
-        normalize_observations=discrim_kwargs.get('normalize_observations', True),
-        fix_variance=discrim_kwargs.get('fix_variance', True),
-        fc_layer_params=[discrim_kwargs['layer_size']] * discrim_kwargs['num_layers'],
     )
 
     """

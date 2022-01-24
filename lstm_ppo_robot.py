@@ -16,17 +16,22 @@ layer_division = 2
 # PartialPush
 # PartialSlide
 
-ENV_NAME = 'PartialPush'
+ENV_NAME = 'PartialPickAndPlace'
 intrinsic_reward_scale= 3  # increasing reward scale helps learning signal
 oracle_reward_scale = 1
+
+is_downstream = True
+# robin1 PickAndPlace blending
+load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-23-lstm-memory-ppo-PartialPickAndPlace-p512-2-d512-div2-blend-i3-o1/01-23-lstm-memory-ppo-PartialPickAndPlace-p512-2-d512-div2-blend-i3-o1_2022_01_23_22_33_11_0000--s-59912257/itr_2499"
 
 
 if policy_num_layer == 1:
     assert layer_division == 1
 
-
-
-if oracle_reward_scale > 0:
+if is_downstream:
+    use_desired_goal = True
+    exp_name='lstm-memory-ppo-{}-downstream'.format(str(ENV_NAME))
+elif oracle_reward_scale > 0:
     exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-div{}-blend-i{}-o{}'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer), str(discrim_layer_size), str(layer_division), str(intrinsic_reward_scale), str(oracle_reward_scale))
     use_desired_goal = True
 else:
@@ -74,7 +79,9 @@ if __name__ == "__main__":
             policy_batch_size=512,
             reward_bounds=(-50, 50),
             reward_scale=intrinsic_reward_scale,  # increasing reward scale helps learning signal
-            oracle_reward_scale = oracle_reward_scale
+            oracle_reward_scale = oracle_reward_scale,
+            is_downstream = is_downstream, # downstream: fintune with oracle reward
+            load_model_path = load_model_path
         ),
         policy_trainer_kwargs=dict(
             discount=0.99,

@@ -36,10 +36,13 @@ class LSTMMemoryTrainer(TorchTrainer):
             algorithm = None,
             latent_dim = None,
             path_len = None,
-            oracle_reward_scale =None
+            oracle_reward_scale =None,
+            is_downstream = False,
+            load_model_path = None
     ):
         super().__init__()
 
+        self.is_downstream = is_downstream
         self.control_policy = control_policy
         self.discriminator = discriminator
         self.replay_buffer = replay_buffer
@@ -62,10 +65,10 @@ class LSTMMemoryTrainer(TorchTrainer):
         self.relabel_rewards = relabel_rewards
         self.reward_mode = reward_mode
         self.oracle_reward_scale = oracle_reward_scale
-
-        self.discrim_optim = torch.optim.Adam(
-            discriminator.parameters(), lr=discrim_learning_rate,
-        )
+        if not self.is_downstream:
+            self.discrim_optim = torch.optim.Adam(
+                discriminator.parameters(), lr=discrim_learning_rate,
+            )
 
         self._obs = np.zeros((replay_size, self.obs_dim))
         self._true_next_obs = np.zeros((replay_size, self.obs_dim))  # for td policy training
@@ -190,7 +193,7 @@ class LSTMMemoryTrainer(TorchTrainer):
         The rest is shared, train from buffer
         """
 
-        if train_discrim:
+        if train_discrim and not self.is_downstream:
             self.train_discriminator()
         if train_policy:
             self.train_from_buffer()
@@ -239,7 +242,9 @@ class LSTMMemoryTrainer(TorchTrainer):
         Compute intrinsic reward: approximate lower bound to I(s; z | o)
         """
 
-        if self.relabel_rewards:
+        oracle_rewards = self._oracle_rewards[:self._cur_replay_size].squeeze()
+
+        if self.relabel_rewards and not self.is_downstream:
 
             rewards, (logp, logp_altz, denom), reward_diagnostics = self.calculate_intrinsic_rewards(
                 self._obs[:self._cur_replay_size],
@@ -282,7 +287,7 @@ class LSTMMemoryTrainer(TorchTrainer):
             # self._need_to_update_eval_statistics = False
             self.eval_statistics.update(self.policy_trainer.eval_statistics)
 
-            if self.relabel_rewards:
+            if self.relabel_rewards and not self.is_downstream:
                 self.eval_statistics.update(reward_diagnostics)
 
                 self.eval_statistics.update(create_stats_ordered_dict(
@@ -317,10 +322,14 @@ class LSTMMemoryTrainer(TorchTrainer):
                     rewards[inds],
                 ))
                  ## oracle rewardsも記録
-                self.eval_statistics.update(create_stats_ordered_dict(
-                    'Oracle Rewards',
-                    oracle_rewards[inds],
-                ))
+                # self.eval_statistics.update(create_stats_ordered_dict(
+                #     'Oracle Rewards',
+                #     oracle_rewards[inds],
+                # ))
+            self.eval_statistics.update(create_stats_ordered_dict(
+                'Oracle Rewards',
+                oracle_rewards,
+            ))
 
         self._n_train_steps_total += 1
 
@@ -333,7 +342,10 @@ class LSTMMemoryTrainer(TorchTrainer):
 
     @property
     def networks(self):
-        return self.policy_trainer.networks + [self.discriminator]
+        if self.is_downstream :
+            return self.policy_trainer.networks
+        else:
+            return self.policy_trainer.networks + [self.discriminator]
 
     def get_snapshot(self):
         snapshot = dict(
