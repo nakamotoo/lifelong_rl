@@ -9,10 +9,11 @@ horizon = int(2000)
 policy_layer_size = 512
 
 ENV_NAME = 'PartialHalfCheetah'
-partial_mode = 'ffoot'
+partial_mode = 'vel'
+reward_mode = "back"
 
 experiment_kwargs = dict(
-    exp_name='ppo-oracle-{}-{}'.format(ENV_NAME, partial_mode),
+    exp_name='ppo-oracle-{}-{}-{}'.format(ENV_NAME, partial_mode, reward_mode),
     num_seeds=1,
     instance_type='c4.4xlarge',
     use_gpu=True,
@@ -26,12 +27,14 @@ if __name__ == "__main__":
         env_name=ENV_NAME,
         env_kwargs=dict(
             terminates=False,
-            partial_mode = partial_mode
+            partial_mode = partial_mode,
+            reward_mode = reward_mode
         ),
         replay_buffer_size=horizon,
         policy_kwargs=dict(
             layer_size=policy_layer_size,
-            layer_num=2
+            layer_num=2,
+            layer_division = 1
         ),
         value_kwargs=dict(
             layer_size=policy_layer_size,

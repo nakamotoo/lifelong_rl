@@ -54,8 +54,8 @@ if __name__ == "__main__":
             value_lr=3e-5,
             target_kl=0.01,
             num_epochs=num_epochs,
-            policy_batch_size=512,
-            value_batch_size=512,
+            policy_batch_size=200,
+            value_batch_size=200,
             normalize_advantages=True,
         ),
         algorithm_kwargs=dict(

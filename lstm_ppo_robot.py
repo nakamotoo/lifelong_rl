@@ -11,6 +11,7 @@ horizon = int(4000)
 policy_num_layer = 2
 discrim_num_layer = 2
 layer_division = 2
+is_downstream = True
 
 # PartialPickAndPlace
 # PartialPush
@@ -20,7 +21,6 @@ ENV_NAME = 'PartialPickAndPlace'
 intrinsic_reward_scale= 1  # increasing reward scale helps learning signal
 oracle_reward_scale = 0
 
-is_downstream = True
 # robin1 PickAndPlace blending
 load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-23-lstm-memory-ppo-PartialPickAndPlace-p512-2-d512-div2-blend-i3-o1/01-23-lstm-memory-ppo-PartialPickAndPlace-p512-2-d512-div2-blend-i3-o1_2022_01_23_22_33_11_0000--s-59912257/itr_2499"
 

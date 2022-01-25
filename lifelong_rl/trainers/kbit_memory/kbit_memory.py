@@ -97,7 +97,7 @@ class KbitMemoryTrainer(TorchTrainer):
         print("kbit_memory, algorithm", algorithm)
 
 
-    def add_sample(self, obs, hidden_s, true_next_obs, action, latent, next_latent, logprob=None, terminal=None, oracle_reward=None,  **kwargs):
+    def add_sample(self, obs, hidden_s, true_next_obs, action, latent, next_latent, reward, logprob=None, terminal=None, oracle_reward=None,  **kwargs):
         self._obs[self._ptr] = obs
         self._hidden_states[self._ptr] = hidden_s
         self._true_next_obs[self._ptr] = true_next_obs
@@ -108,6 +108,7 @@ class KbitMemoryTrainer(TorchTrainer):
         if logprob is not None:
             self._logprobs[self._ptr] = logprob
         self._oracle_rewards[self._ptr] = oracle_reward
+        self._rewards[self._ptr] = reward
 
         self._ptr = (self._ptr + 1) % self.replay_size
         self._cur_replay_size = min(self._cur_replay_size+1, self.replay_size)
@@ -163,6 +164,7 @@ class KbitMemoryTrainer(TorchTrainer):
             path_len = len(obs) - self.empowerment_horizon + 1
             terminals = path['terminals']
             oracle_rewards = path["rewards"]
+            rewards = path["rewards"]
 
             obs_latents = np.concatenate([obs, latents], axis=-1)
             actions_writes = np.concatenate([actions, writes], axis=-1)
@@ -181,6 +183,7 @@ class KbitMemoryTrainer(TorchTrainer):
                     actions_writes[t],
                     latents[t],
                     next_latents[t],
+                    rewards[t],
                     logprob=log_probs[t],
                     terminal = terminals[t],
                     oracle_reward = oracle_rewards[t]
@@ -247,6 +250,7 @@ class KbitMemoryTrainer(TorchTrainer):
         Compute intrinsic reward: approximate lower bound to I(s; z | o)
         """
         oracle_rewards = self._oracle_rewards[:self._cur_replay_size].squeeze()
+
 
         if self.relabel_rewards and not self.is_downstream:
 
