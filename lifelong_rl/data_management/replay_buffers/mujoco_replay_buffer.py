@@ -31,9 +31,10 @@ class MujocoReplayBuffer(EnvReplayBuffer):
         self._qpos = np.zeros((max_replay_buffer_size, *self.qpos_shape))
 
         self.env_states = []
+        self.desired_goals = []
 
     def add_sample(self, observation, action, reward, terminal,
-                   next_observation, env_state, **kwargs):
+                   next_observation, env_state, desired_goal = None, **kwargs):
         self._body_xpos[self._top] = self.env.sim.data.body_xpos
         self._qpos[self._top] = self.env.sim.data.qpos
         # if len(self.env_states) >= self.max_replay_buffer_size():
@@ -44,6 +45,12 @@ class MujocoReplayBuffer(EnvReplayBuffer):
             self.env_states[self._top] = env_state
         else:
             self.env_states.append(copy.deepcopy(env_state))
+
+        if len(self.desired_goals) >= self.max_replay_buffer_size():
+            self.desired_goals[self._top] = desired_goal
+        else:
+            self.desired_goals.append(copy.deepcopy(desired_goal))
+
 
         # print(env_state, self.env_states)
 
@@ -63,6 +70,7 @@ class MujocoReplayBuffer(EnvReplayBuffer):
             body_xpos=self._body_xpos[:self._size],
             qpos=self._qpos[:self._size],
             env_states=self.env_states[:self._size],
+            desired_goals = self.desired_goals[:self._size],
         ))
         return snapshot
 

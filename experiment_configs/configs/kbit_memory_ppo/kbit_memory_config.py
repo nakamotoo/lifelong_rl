@@ -9,6 +9,7 @@ from lifelong_rl.trainers.kbit_memory.state_predictor import StatePredictor
 from lifelong_rl.trainers.pg.ppo import PPOTrainer
 import lifelong_rl.torch.pytorch_util as ptu
 import lifelong_rl.util.pythonplusplus as ppp
+import copy
 
 
 def get_config(
@@ -43,8 +44,8 @@ def get_config(
         with open(load_model_path + '.pt', 'rb') as f:
             print("loading snapshot from:", load_model_path)
             snapshot = torch.load(f, map_location='cpu')
-        control_policy = snapshot["trainer/policy_trainer/policy"]
-        value_func = snapshot["trainer/policy_trainer/value_func"]
+        control_policy = copy.deepcopy(snapshot["trainer/policy_trainer/policy"])
+        value_func = copy.deepcopy(snapshot["trainer/policy_trainer/value_func"])
         discriminator = None
     else:
         control_policy = TanhGaussianPolicy(

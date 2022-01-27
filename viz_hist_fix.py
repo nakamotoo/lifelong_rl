@@ -15,12 +15,13 @@ from mujoco_py import GlfwContext
 Visualize replay buffer of agent and store as .mp4
 """
 
-
+# desired goalがまだreplay bufferに追加されていなかったときに回したgoal reaching環境の可視化
 def get_env_states(snapshot_name):
     with open(snapshot_name + '.pt', 'rb') as f:
         snapshot = torch.load(f, map_location='cpu')
         env_states = snapshot['replay_buffer/env_states']
-        desired_goals = snapshot['replay_buffer/desired_goals'] if 'replay_buffer/desired_goals' in snapshot else None
+        # desired_goals = snapshot['replay_buffer/desired_goals'] if 'replay_buffer/desired_goals' in snapshot else None
+        desired_goals = snapshot['replay_buffer/observations'][:, -3:]
     return env_states, desired_goals
 
 

@@ -97,7 +97,7 @@ class KbitMemoryTrainer(TorchTrainer):
         print("kbit_memory, algorithm", algorithm)
 
 
-    def add_sample(self, obs, hidden_s, true_next_obs, action, latent, next_latent, logprob=None, terminal=None, oracle_reward=None,  **kwargs):
+    def add_sample(self, obs, hidden_s, true_next_obs, action, latent, next_latent, reward, logprob=None, terminal=None, oracle_reward=None,  **kwargs):
         self._obs[self._ptr] = obs
         self._hidden_states[self._ptr] = hidden_s
         self._true_next_obs[self._ptr] = true_next_obs
@@ -108,6 +108,7 @@ class KbitMemoryTrainer(TorchTrainer):
         if logprob is not None:
             self._logprobs[self._ptr] = logprob
         self._oracle_rewards[self._ptr] = oracle_reward
+        self._rewards[self._ptr] = reward
 
         self._ptr = (self._ptr + 1) % self.replay_size
         self._cur_replay_size = min(self._cur_replay_size+1, self.replay_size)
@@ -143,6 +144,12 @@ class KbitMemoryTrainer(TorchTrainer):
         rewards = np.clip(rewards, *self.reward_bounds)  # stabilizes training
         return rewards, dict()
 
+    def reward_postprocessing_downstream(self, rewards, *args, **kwargs):
+        # Some scaling of the rewards can help; it is very finicky though
+        rewards = rewards * self.oracle_reward_scale
+        rewards = np.clip(rewards, *self.reward_bounds)  # stabilizes training
+        return rewards, dict()
+
     def train_from_paths(self, paths, train_discrim=True, train_policy=True):
         """
         Reading new paths: append latent to state
@@ -163,6 +170,7 @@ class KbitMemoryTrainer(TorchTrainer):
             path_len = len(obs) - self.empowerment_horizon + 1
             terminals = path['terminals']
             oracle_rewards = path["rewards"]
+            rewards = path["rewards"]
 
             obs_latents = np.concatenate([obs, latents], axis=-1)
             actions_writes = np.concatenate([actions, writes], axis=-1)
@@ -181,6 +189,7 @@ class KbitMemoryTrainer(TorchTrainer):
                     actions_writes[t],
                     latents[t],
                     next_latents[t],
+                    rewards[t],
                     logprob=log_probs[t],
                     terminal = terminals[t],
                     oracle_reward = oracle_rewards[t]
@@ -248,6 +257,7 @@ class KbitMemoryTrainer(TorchTrainer):
         """
         oracle_rewards = self._oracle_rewards[:self._cur_replay_size].squeeze()
 
+
         if self.relabel_rewards and not self.is_downstream:
 
             rewards, (logp, logp_altz, denom), reward_diagnostics = self.calculate_intrinsic_rewards(
@@ -266,6 +276,11 @@ class KbitMemoryTrainer(TorchTrainer):
 
             gt.stamp('intrinsic reward calculation', unique=False)
 
+        if self.is_downstream:
+            rewards = self._rewards[:self._cur_replay_size].squeeze()
+            rewards, postproc_dict = self.reward_postprocessing_downstream(rewards, reward_kwargs=reward_kwargs)
+            self._rewards[:self._cur_replay_size] = np.expand_dims(rewards, axis=-1)
+
 
         """
         Train policy
@@ -283,7 +298,8 @@ class KbitMemoryTrainer(TorchTrainer):
                 "rewards": self._rewards[:self._cur_replay_size],
                 "terminals": self._terminals[:self._cur_replay_size],
             }]
-            self.policy_trainer.train_from_paths(ppo_paths, mode="dads")
+            mode = None if self.is_downstream else "dads"
+            self.policy_trainer.train_from_paths(ppo_paths, mode=mode)
         else:
             for _ in range(self.num_policy_updates):
                 batch = ppp.sample_batch(

@@ -15,7 +15,7 @@ def make_env(env_name, terminates=True, **kwargs):
     Episodic reinforcement learning
     """
     if env_name == 'HalfCheetah':
-        from gym.envs.mujoco import HalfCheetahEnv
+        from lifelong_rl.envs.environments.cheetah_env import HalfCheetahEnv
         base_env = HalfCheetahEnv
         env_infos['mujoco'] = True
     elif env_name == 'Ant':
