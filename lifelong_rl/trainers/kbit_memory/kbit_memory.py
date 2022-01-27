@@ -144,6 +144,12 @@ class KbitMemoryTrainer(TorchTrainer):
         rewards = np.clip(rewards, *self.reward_bounds)  # stabilizes training
         return rewards, dict()
 
+    def reward_postprocessing_downstream(self, rewards, *args, **kwargs):
+        # Some scaling of the rewards can help; it is very finicky though
+        rewards = rewards * self.oracle_reward_scale
+        rewards = np.clip(rewards, *self.reward_bounds)  # stabilizes training
+        return rewards, dict()
+
     def train_from_paths(self, paths, train_discrim=True, train_policy=True):
         """
         Reading new paths: append latent to state
@@ -270,6 +276,11 @@ class KbitMemoryTrainer(TorchTrainer):
 
             gt.stamp('intrinsic reward calculation', unique=False)
 
+        if self.is_downstream:
+            rewards = self._rewards[:self._cur_replay_size].squeeze()
+            rewards, postproc_dict = self.reward_postprocessing_downstream(rewards, reward_kwargs=reward_kwargs)
+            self._rewards[:self._cur_replay_size] = np.expand_dims(rewards, axis=-1)
+
 
         """
         Train policy
@@ -287,7 +298,8 @@ class KbitMemoryTrainer(TorchTrainer):
                 "rewards": self._rewards[:self._cur_replay_size],
                 "terminals": self._terminals[:self._cur_replay_size],
             }]
-            self.policy_trainer.train_from_paths(ppo_paths, mode="dads")
+            mode = None if self.is_downstream else "dads"
+            self.policy_trainer.train_from_paths(ppo_paths, mode=mode)
         else:
             for _ in range(self.num_policy_updates):
                 batch = ppp.sample_batch(

@@ -7,7 +7,7 @@ import os
 num_epochs = 4
 policy_layer_size = 512
 discrim_layer_size = 512
-horizon = int(4000)
+horizon = int(2000)
 policy_num_layer = 2
 discrim_num_layer = 2
 layer_division = 2
@@ -18,19 +18,22 @@ is_downstream = True
 # PartialSlide
 
 ENV_NAME = 'PartialPickAndPlace'
-intrinsic_reward_scale= 1  # increasing reward scale helps learning signal
-oracle_reward_scale = 0
+intrinsic_reward_scale= 0  # increasing reward scale helps learning signal
+oracle_reward_scale = 1
 
-# robin1 PickAndPlace blending
-load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-23-lstm-memory-ppo-PartialPickAndPlace-p512-2-d512-div2-blend-i3-o1/01-23-lstm-memory-ppo-PartialPickAndPlace-p512-2-d512-div2-blend-i3-o1_2022_01_23_22_33_11_0000--s-59912257/itr_2499"
-
+# robin0 PartialPush
+# load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-25-lstm-memory-ppo-PartialPush-p512-2-d512-div2/01-25-lstm-memory-ppo-PartialPush-p512-2-d512-div2_2022_01_25_21_51_13_0000--s-46118288/itr_2999"
+# robin0 PickandPlace 512 256 256
+# load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-25-lstm-memory-ppo-PartialPickAndPlace-p512-2-d512-div2/01-25-lstm-memory-ppo-PartialPickAndPlace-p512-2-d512-div2_2022_01_25_21_50_09_0000--s-37403255/itr_1999"
+# robin0 PickandPlace 256 256 256
+load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-25-lstm-memory-ppo-PartialPickAndPlace-p256-2-d512-div1/01-25-lstm-memory-ppo-PartialPickAndPlace-p256-2-d512-div1_2022_01_25_21_55_11_0000--s-98672617/itr_2999"
 
 if policy_num_layer == 1:
     assert layer_division == 1
 
 if is_downstream:
     use_desired_goal = True
-    exp_name='lstm-memory-ppo-{}-downstream'.format(str(ENV_NAME))
+    exp_name='lstm-memory-ppo-{}-downstream-256-1e-4'.format(str(ENV_NAME))
 elif oracle_reward_scale > 0:
     exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-div{}-blend-i{}-o{}'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer), str(discrim_layer_size), str(layer_division), str(intrinsic_reward_scale), str(oracle_reward_scale))
     use_desired_goal = True
@@ -49,7 +52,7 @@ experiment_kwargs = dict(
 
 
 if __name__ == "__main__":
-    os.environ["CUDA_VISIBLE_DEVICES"]='0'
+    os.environ["CUDA_VISIBLE_DEVICES"]='1'
     variant = dict(
         algorithm='LSTM-Memory-PPO',
         collector_type='lstm_memory',
@@ -58,7 +61,8 @@ if __name__ == "__main__":
         env_name=ENV_NAME,
         env_kwargs=dict(
             terminates=False,
-            use_desired_goal = use_desired_goal
+            use_desired_goal = use_desired_goal,
+            reward_type = "else"
         ),
         policy_kwargs=dict(
             layer_size=policy_layer_size,
@@ -87,8 +91,8 @@ if __name__ == "__main__":
             discount=0.99,
             gae_lambda=0.97,
             ppo_epsilon=0.1,
-            policy_lr=3e-5,
-            value_lr=3e-5,
+            policy_lr=1e-4,
+            value_lr=1e-4,
             target_kl=0.01,
             num_epochs=num_epochs,
             policy_batch_size=512,
@@ -101,7 +105,7 @@ if __name__ == "__main__":
             num_trains_per_train_loop=1,
             num_expl_steps_per_train_loop=horizon,
             min_num_steps_before_training=0,
-            max_path_length=200,
+            max_path_length=100,
             save_snapshot_freq=50,
         ),
     )

@@ -72,16 +72,14 @@ class PPOLSTMTrainer(PGTrainer):
             # Other places like to have an extra dimension so that all arrays are 2D
             path['rewards'] = np.squeeze(path['rewards'], axis=-1)
             path['terminals'] = np.squeeze(path['terminals'], axis=-1)
-
         obs, actions = [], []
+
         for path in paths:
             obs.append(path['observations'])
             actions.append(path['actions'])
         obs = np.concatenate(obs, axis=0)
         actions = np.concatenate(actions, axis=0)
-
         total_steps = obs.shape[0]
-
         obs_tensor, act_tensor = ptu.from_numpy(obs), ptu.from_numpy(actions)
         """
         Policy training loop
@@ -129,7 +127,6 @@ class PPOLSTMTrainer(PGTrainer):
             # lstmなので、path(200step)ずつ入力
             # num_policy_steps = len(advantages) // self.policy_batch_size
             for i in range(0, total_steps, path_len):
-
                 batch = dict(
                     observations=obs[i:i+path_len, :],
                     actions=actions[i:i+path_len, :],

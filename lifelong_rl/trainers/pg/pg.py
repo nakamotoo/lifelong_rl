@@ -82,11 +82,9 @@ class PGTrainer(TorchTrainer):
             # Other places like to have an extra dimension so that all arrays are 2D
             path['rewards'] = np.squeeze(path['rewards'], axis=-1)
             path['terminals'] = np.squeeze(path['terminals'], axis=-1)
-
             if mode is None:
                 # Reward normalization; divide by std of reward in replay buffer
                 path['rewards'] = np.clip(path['rewards'] / (self._reward_std + 1e-3), -10, 10)
-
         obs, actions = [], []
         for path in paths:
             obs.append(path['observations'])

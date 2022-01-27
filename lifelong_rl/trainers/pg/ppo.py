@@ -45,7 +45,6 @@ class PPOTrainer(PGTrainer):
         # objective = torch.min(policy_loss_1, policy_loss_2).mean()
         # objective = policy_loss_2.mean() # policy_loss_1に -inf が入ったりするので、policy_loss_2を使用するように変更した
         objective += self.entropy_coeff * (-log_probs).mean()
-
         kl = (log_probs_old - log_probs).mean()
 
         return objective, kl

@@ -4,10 +4,12 @@ from gym.envs.robotics import fetch_env, rotations, robot_env
 from gym.envs.robotics.utils import robot_get_obs
 import numpy as np
 
+from lifelong_rl.envs.environments.fetch_env import FetchEnv
+
 MODEL_XML_PATH = os.path.join('fetch', 'push.xml')
 
 
-class FetchPushEnv(fetch_env.FetchEnv, utils.EzPickle):
+class FetchPushEnv(FetchEnv, utils.EzPickle):
     def __init__(self, reward_type='sparse', use_desired_goal = True):
         initial_qpos = {
             'robot0:slide0': 0.405,
@@ -15,9 +17,9 @@ class FetchPushEnv(fetch_env.FetchEnv, utils.EzPickle):
             'robot0:slide2': 0.0,
             'object0:joint': [1.25, 0.53, 0.4, 1., 0., 0., 0.],
         }
-        fetch_env.FetchEnv.__init__(
+        FetchEnv.__init__(
             self, MODEL_XML_PATH, has_object=True, block_gripper=True, n_substeps=20,
-            gripper_extra_height=0.0, target_in_the_air=False, target_offset=0.0,
+            gripper_extra_height=0.2, target_in_the_air=False, target_offset=0.0,
             obj_range=0.15, target_range=0.15, distance_threshold=0.05,
             initial_qpos=initial_qpos, reward_type=reward_type)
         utils.EzPickle.__init__(self)
@@ -26,7 +28,6 @@ class FetchPushEnv(fetch_env.FetchEnv, utils.EzPickle):
 
     def _reset_sim(self):
         self.sim.set_state(self.initial_state)
-
         # Do not randomize start position of object.
         if self.has_object:
             object_xpos = self.initial_gripper_xpos[:2]
@@ -42,7 +43,7 @@ class FetchPushEnv(fetch_env.FetchEnv, utils.EzPickle):
 
 
 
-class PartialFetchPushEnv(fetch_env.FetchEnv, utils.EzPickle):
+class PartialFetchPushEnv(FetchEnv, utils.EzPickle):
     def __init__(self, reward_type='sparse', use_desired_goal = False):
         initial_qpos = {
             'robot0:slide0': 0.405,
@@ -50,9 +51,9 @@ class PartialFetchPushEnv(fetch_env.FetchEnv, utils.EzPickle):
             'robot0:slide2': 0.0,
             'object0:joint': [1.25, 0.53, 0.4, 1., 0., 0., 0.],
         }
-        fetch_env.FetchEnv.__init__(
+        FetchEnv.__init__(
             self, MODEL_XML_PATH, has_object=True, block_gripper=True, n_substeps=20,
-            gripper_extra_height=0.0, target_in_the_air=False, target_offset=0.0,
+            gripper_extra_height=0.2, target_in_the_air=False, target_offset=0.0,
             obj_range=0.15, target_range=0.15, distance_threshold=0.05,
             initial_qpos=initial_qpos, reward_type=reward_type)
         utils.EzPickle.__init__(self)

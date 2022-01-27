@@ -1,9 +1,10 @@
 import torch
 
 from lifelong_rl.policies.base.base import MakeDeterministic
-from lifelong_rl.policies.models.gaussian_policy import TanhGaussianPolicy
-from lifelong_rl.models.networks import FlattenMlp
-from lifelong_rl.trainers.pg.ppo import PPOTrainer
+from lifelong_rl.policies.models.lstm_gaussian_policy import LSTMGaussianPolicy
+from lifelong_rl.policies.base.lstm_memory_policy import LSTMMemoryPolicy
+from lifelong_rl.models.networks import FlattenLSTMMlp
+from lifelong_rl.trainers.pg.ppo_lstm import PPOLSTMTrainer
 import lifelong_rl.torch.pytorch_util as ptu
 from lifelong_rl.trainers.ppo_her.ppo_her import PPOHERTrainer
 
@@ -32,7 +33,7 @@ def get_config(
 
     # PPO is very finicky with weight initializations
 
-    policy = TanhGaussianPolicy(
+    control_policy = LSTMGaussianPolicy(
         obs_dim=obs_dim,
         action_dim=action_dim,
         hidden_sizes=policy_hidden_sizes,
@@ -45,9 +46,14 @@ def get_config(
         hidden_init=ptu.orthogonal_init,
     )
 
+    policy = LSTMMemoryPolicy(
+        policy=control_policy,
+        latent_dim=M // layer_division,
+    )
+
     # M = variant['value_kwargs']['layer_size']
 
-    value_func = FlattenMlp(
+    value_func = FlattenLSTMMlp(
         input_size=obs_dim,
         output_size=1,
         hidden_sizes=policy_hidden_sizes,
@@ -58,9 +64,9 @@ def get_config(
     )
 
     # memo これなぜeval env?
-    policy_trainer = PPOTrainer(
+    policy_trainer = PPOLSTMTrainer(
         env=expl_env,
-        policy=policy,
+        policy=control_policy,
         value_func=value_func,
         **variant['policy_trainer_kwargs'],
     )
@@ -69,6 +75,7 @@ def get_config(
         policy_trainer = policy_trainer,
         replay_buffer=replay_buffer,
         replay_size=variant['replay_buffer_size'],
+        path_len = variant['algorithm_kwargs']['max_path_length'],
         **variant['trainer_kwargs'],
     )
 
@@ -76,7 +83,8 @@ def get_config(
     config.update(dict(
         trainer=trainer,
         exploration_policy=policy,
-        evaluation_policy=MakeDeterministic(policy),
+        # evaluation_policy=MakeDeterministic(policy),
+        evaluation_policy = policy,
         exploration_env=expl_env,
         evaluation_env=eval_env,
         replay_buffer=replay_buffer,

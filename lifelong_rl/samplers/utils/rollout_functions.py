@@ -382,6 +382,8 @@ def rollout_with_lstm(
     env_states = []
     o = env.reset()
     achieved_goals = []
+    desired_goals = []
+
     o = obs_process(o, env)
 
     agent.reset()
@@ -393,17 +395,21 @@ def rollout_with_lstm(
     while path_length < max_path_length:
         if path_length == 0:
             agent.reset_lstm_hidden()
-        hidden_s = env._get_hidden_state()
+        if hasattr(env, "_get_hidden_state"):
+            hidden_s = env._get_hidden_state()
+            hidden_states.append(hidden_s)
         a, agent_info = agent.get_action(o)
         next_o, r, d, env_info = env.step(a)
 
+        dg = None
         if hasattr(env, "use_desired_goal"):
             ag = next_o["achieved_goal"]
+            dg = next_o["desired_goal"]
             achieved_goals.append(ag)
+            desired_goals.append(dg)
 
         next_o = obs_process(next_o, env)
         observations.append(o)
-        hidden_states.append(hidden_s)
         rewards.append(r)
         terminals.append(d)
         actions.append(a)
@@ -453,6 +459,7 @@ def rollout_with_lstm(
         env_states = env_states,
         hidden_states = hidden_states,
         next_latents = next_latents,
-        achieved_goals = achieved_goals
+        achieved_goals = achieved_goals,
+        desired_goals = desired_goals
     )
 

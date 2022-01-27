@@ -97,8 +97,8 @@ class LSTMMemoryTrainer(TorchTrainer):
         self._algorithm = algorithm
         self.path_len = path_len
         self.relabel_goal = False
-        if hasattr(self.policy_trainer.env, "use_desired_goal") and self.policy_trainer.env.use_desired_goal:
-            self.relabel_goal = True
+        # if hasattr(self.policy_trainer.env, "use_desired_goal") and self.policy_trainer.env.use_desired_goal:
+        #     self.relabel_goal = True
 
         print("LSTM Memory, algorithm:", algorithm)
         print("relabel goal:", self.relabel_goal)
@@ -126,7 +126,7 @@ class LSTMMemoryTrainer(TorchTrainer):
             states = states[:,:self.restrict_input_size]
             hidden_states = hidden_states[:,:self.restrict_input_size]
 
-        if self.relabel_goal:
+        if hasattr(self.policy_trainer.env, "use_desired_goal") and self.policy_trainer.env.use_desired_goal:
             states = states[:,:-3]
 
         if self.reward_mode is None:
@@ -179,20 +179,20 @@ class LSTMMemoryTrainer(TorchTrainer):
             ## goal relabeling with HER
             ## unsupervised pretrain では, rewardはintrinsicで計算するのでrelabelしなくていい
             ### goal は relabel
-            if self.relabel_goal:
-                achieved_goals = path["achieved_goals"]
-                relabeled_desired_goals = []
-                for i in range(path_len):
-                    goal_ind = np.random.randint(i, path_len)
-                    obs[i, -3:] = achieved_goals[goal_ind]
-                    next_obs[i, -3:] = achieved_goals[goal_ind]
-                    relabeled_desired_goals.append(achieved_goals[goal_ind])
-                relabeled_desired_goals = np.array(relabeled_desired_goals)
+            # if self.relabel_goal:
+            #     achieved_goals = path["achieved_goals"]
+            #     relabeled_desired_goals = []
+            #     for i in range(path_len):
+            #         goal_ind = np.random.randint(i, path_len)
+            #         obs[i, -3:] = achieved_goals[goal_ind]
+            #         next_obs[i, -3:] = achieved_goals[goal_ind]
+            #         relabeled_desired_goals.append(achieved_goals[goal_ind])
+            #     relabeled_desired_goals = np.array(relabeled_desired_goals)
 
-            # downstramの場合は、rewardのrelabel必要
-            if self.relabel_goal and self.is_downstream:
-                distance = np.linalg.norm(achieved_goals - relabeled_desired_goals, axis=-1)
-                rewards = -(distance > 0.05).astype(np.float32)
+            # # downstramの場合は、rewardのrelabel必要
+            # if self.relabel_goal and self.is_downstream:
+            #     distance = np.linalg.norm(achieved_goals - relabeled_desired_goals, axis=-1)
+            #     rewards = -(distance > 0.05).astype(np.float32)
 
             log_probs = self.control_policy.get_log_probs(
                 ptu.from_numpy(obs),
@@ -247,7 +247,7 @@ class LSTMMemoryTrainer(TorchTrainer):
                 batch['hidden_states'] = batch['hidden_states'][:, :self.restrict_input_size]
 
         # discriminatorの入力にはdesired goalはいらない
-            if self.relabel_goal:
+            if hasattr(self.policy_trainer.env, "use_desired_goal") and self.policy_trainer.env.use_desired_goal:
                 batch['obs'] = batch['obs'][:, :-3]
 
             # we embedded the latent in the observation, so (s, z) -> (delta s')

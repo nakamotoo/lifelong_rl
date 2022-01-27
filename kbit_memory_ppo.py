@@ -11,7 +11,7 @@ horizon = int(2000)
 memory_bit = 12
 
 intrinsic_reward_scale= 1  # increasing reward scale helps learning signal
-oracle_reward_scale = 1
+oracle_reward_scale = 10
 
 ENV_NAME = 'PartialHalfCheetah'
 partial_mode = 'vel'
@@ -19,12 +19,12 @@ reward_mode = 'forward'
 
 is_downstream = True
 # robin1 前に走るmodel
-load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-20-kbit-memory-ppo-PartialHalfCheetah-p512-d512/01-20-kbit-memory-ppo-PartialHalfCheetah-p512-d512_2022_01_20_13_09_44_0000--s-37857306/itr_9999"
+load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-20-kbit-memory-ppo-PartialHalfCheetah-p512-d512/01-20-kbit-memory-ppo-PartialHalfCheetah-p512-d512_2022_01_20_13_09_44_0000--s-37857306/itr_6999"
 # robin1 後ろに走るmodel
-# load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-20-kbit-memory-ppo-PartialHalfCheetah-p512-d512/01-20-kbit-memory-ppo-PartialHalfCheetah-p512-d512_2022_01_20_13_09_04_0000--s-44302734/itr_9999"
+# load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-20-kbit-memory-ppo-PartialHalfCheetah-p512-d512/01-20-kbit-memory-ppo-PartialHalfCheetah-p512-d512_2022_01_20_13_09_04_0000--s-44302734/itr_3999"
 
 if is_downstream:
-    exp_name='kbit-memory-ppo-{}-{}-{}-downstream-{}'.format(str(ENV_NAME), str(partial_mode), str(memory_bit), reward_mode)
+    exp_name='kbit-memory-ppo-{}-{}-{}-downstream-{}-test'.format(str(ENV_NAME), str(partial_mode), str(memory_bit), reward_mode)
 elif oracle_reward_scale > 0:
     exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}-blend-{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit), str(intrinsic_reward_scale), str(oracle_reward_scale))
 else:
@@ -50,7 +50,7 @@ if __name__ == "__main__":
             # grid_files=['blank'],  # specifies which file to load for gridworld
             terminates=False,
             partial_mode = partial_mode,
-            reward_mode = reward_mode
+            reward_mode = reward_mode,
         ),
         policy_kwargs=dict(
             layer_size=policy_layer_size,

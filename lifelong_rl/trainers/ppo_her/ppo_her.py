@@ -20,6 +20,8 @@ class PPOHERTrainer(TorchTrainer):
             policy_trainer,
             replay_buffer,
             replay_size,
+            replay_k = 1,
+            path_len = None
     ):
         super().__init__()
 
@@ -28,6 +30,7 @@ class PPOHERTrainer(TorchTrainer):
         self._ptr = 0
         self._cur_replay_size = 0
         self.replay_size = replay_size
+        self.relabel_prob = 1 - (1. / (1 + replay_k)) # あるサンプルに対してどれくらいの確率でrelabelを実行するか
 
         self.obs_dim = replay_buffer.obs_dim()
         self.action_dim = replay_buffer.action_dim()
@@ -41,6 +44,7 @@ class PPOHERTrainer(TorchTrainer):
 
         self._need_to_update_eval_statistics = True
         self.eval_statistics = OrderedDict()
+        self.path_len = path_len
 
     def add_sample(self, obs, next_obs, action, reward, oracle_reward, terminal):
         self._obs[self._ptr] = obs
@@ -68,27 +72,26 @@ class PPOHERTrainer(TorchTrainer):
             path_len = len(obs)
             relabeled_desired_goals = []
             oracle_rewards = path["rewards"]
-
             # Relabel goals
-            for i in range(path_len):
-                goal_ind = np.random.randint(i, path_len)
-                obs[i, -3:] = achieved_goals[goal_ind]
-                next_obs[i, -3:] = achieved_goals[goal_ind]
-                relabeled_desired_goals.append(achieved_goals[goal_ind])
-            relabeled_desired_goals = np.array(relabeled_desired_goals)
+            # for i in range(path_len):
+            #     goal_ind = np.random.randint(i, path_len)
+            #     obs[i, -3:] = achieved_goals[goal_ind]
+            #     next_obs[i, -3:] = achieved_goals[goal_ind]
+            #     relabeled_desired_goals.append(achieved_goals[goal_ind])
+            # relabeled_desired_goals = np.array(relabeled_desired_goals)
 
 
             # relabel rewards |next
             # 距離がある程度近づいたら1, それじゃないなら0のバイナリreward
-            distance = np.linalg.norm(achieved_goals - relabeled_desired_goals, axis=-1)
-            relabeled_rewards = -(distance > 0.05).astype(np.float32)
-
+            # distance = np.linalg.norm(achieved_goals - relabeled_desired_goals, axis=-1)
+            # relabeled_rewards = -(distance > 0.05).astype(np.float32)
             for t in range(path_len):
                 self.add_sample(
                     obs[t],
                     next_obs[t],
                     actions[t],
-                    reward = relabeled_rewards[t],
+                    # reward = relabeled_rewards[t],
+                    reward = oracle_rewards[t],
                     oracle_reward = oracle_rewards[t],
                     terminal = terminals[t]
                 )
@@ -103,7 +106,7 @@ class PPOHERTrainer(TorchTrainer):
             "rewards": self._rewards[:self._cur_replay_size],
             "terminals": self._terminals[:self._cur_replay_size],
         }]
-        self.policy_trainer.train_from_paths(ppo_paths)
+        self.policy_trainer.train_from_paths(ppo_paths, path_len = self.path_len)
         gt.stamp('policy training', unique=False)
 
         if self._need_to_update_eval_statistics:
