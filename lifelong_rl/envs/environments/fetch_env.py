@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 from gym.envs.robotics import rotations, robot_env, utils
 
@@ -47,6 +48,9 @@ class FetchEnv(robot_env.RobotEnv):
             model_path=model_path, n_substeps=n_substeps, n_actions=4,
             initial_qpos=initial_qpos)
 
+        if has_object:
+            self.initial_object_pos = copy.deepcopy(self.sim.data.get_site_xpos('object0'))
+
     # GoalEnv methods
     # ----------------------------
 
@@ -55,8 +59,23 @@ class FetchEnv(robot_env.RobotEnv):
         d = goal_distance(achieved_goal, goal)
         if self.reward_type == 'sparse':
             return -(d > self.distance_threshold).astype(np.float32)
-        else:
+        elif self.reward_type == 'initial_distance' or self.reward_type == 'initial_distance_sparse':
+            r = goal_distance(achieved_goal, self.initial_object_pos)
+            return r
+        elif self.reward_type == 'z_distance':
+            z_distance = achieved_goal[2] - self.initial_object_pos[2]
+            if z_distance < - self.distance_threshold:
+                r = -1.0
+            elif z_distance > self.distance_threshold:
+                r = 1.0
+            else:
+                r = -0.3
+
+            return round(r, 3)
+        elif self.reward_type == 'goal_distance':
             return -d
+        else:
+            raise NotImplementedError
 
     # RobotEnv methods
     # ----------------------------

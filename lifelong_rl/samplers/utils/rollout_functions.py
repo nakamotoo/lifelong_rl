@@ -285,6 +285,7 @@ def rollout_with_kbit_memory(
     env_states = []
     o = env.reset()
     o = obs_process(o, env)
+    desired_goals = []
 
     agent.reset()
     latent_dim = agent._latent_dim
@@ -310,6 +311,7 @@ def rollout_with_kbit_memory(
         latents.append(agent.get_current_latent())
         # kbit memory を書き換える m_t → m_t+1
         writes.append(w) # pathに保存するwritesを連続値のままに
+        desired_goals.append(None)
 
         write = np.where(w <= 0.0, 0.0, 1.0)
         next_m = agent.write_memory(write)
@@ -356,7 +358,8 @@ def rollout_with_kbit_memory(
         env_states = env_states,
         writes = writes,
         hidden_states = hidden_states,
-        next_latents = next_latents
+        next_latents = next_latents,
+        desired_goals = desired_goals
     )
 
 def rollout_with_lstm(

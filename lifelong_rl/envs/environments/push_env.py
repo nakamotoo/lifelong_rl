@@ -1,4 +1,4 @@
-import os
+import os, copy
 from gym import utils
 from gym.envs.robotics import fetch_env, rotations, robot_env
 from gym.envs.robotics.utils import robot_get_obs
@@ -37,7 +37,7 @@ class FetchPushEnv(FetchEnv, utils.EzPickle):
             assert object_qpos.shape == (7,)
             object_qpos[:2] = object_xpos
             self.sim.data.set_joint_qpos('object0:joint', object_qpos)
-
+        self.initial_object_pos = copy.deepcopy(self.sim.data.get_site_xpos('object0'))
         self.sim.forward()
         return True
 
@@ -73,7 +73,7 @@ class PartialFetchPushEnv(FetchEnv, utils.EzPickle):
             assert object_qpos.shape == (7,)
             object_qpos[:2] = object_xpos
             self.sim.data.set_joint_qpos('object0:joint', object_qpos)
-
+        self.initial_object_pos = copy.deepcopy(self.sim.data.get_site_xpos('object0'))
         self.sim.forward()
         return True
 

@@ -43,7 +43,6 @@ class PartialHalfCheetahEnv(mujoco_env.MujocoEnv, utils.EzPickle):
             self.hidden_state_dim = self.sim.data.qvel.shape[0]
         elif partial_mode == "ffoot":
             self.hidden_state_dim = 2
-
         print("cheetah reward mode:", self._reward_mode)
 
 
@@ -93,6 +92,7 @@ class PartialHalfCheetahEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
     def viewer_setup(self):
         self.viewer.cam.distance = self.model.stat.extent * 0.5
+        self.viewer.cam.lookat[2] += .8
 
 
 class HalfCheetahEnv(mujoco_env.MujocoEnv, utils.EzPickle):
@@ -100,7 +100,6 @@ class HalfCheetahEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         self._reward_mode = reward_mode
         mujoco_env.MujocoEnv.__init__(self, 'half_cheetah.xml', 5)
         utils.EzPickle.__init__(self)
-        print("cheetah reward mode:", self._reward_mode)
 
     def step(self, action):
         xposbefore = self.sim.data.qpos[0]
@@ -130,3 +129,4 @@ class HalfCheetahEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
     def viewer_setup(self):
         self.viewer.cam.distance = self.model.stat.extent * 0.5
+        self.viewer.cam.elevation = -15

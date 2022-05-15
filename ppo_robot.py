@@ -11,14 +11,18 @@ horizon = int(2000)
 policy_layer_size = 512
 policy_num_layer = 2
 layer_division = 2
+use_desired_goal = False
+# initial_distance, z_distance, sparse, goal_distance
+reward_type = "z_distance"
+reward_scale = 3
 
 # PickAndPlace, PartialPickAndPlace
 # Push, PartialPush
 # Slide, PartialSlide
-ENV_NAME = 'PartialPush'
+ENV_NAME = 'PickAndPlace'
 
 experiment_kwargs = dict(
-    exp_name='ppo-oracle-{}-p{}-num{}-div{}'.format(ENV_NAME, str(policy_layer_size), str(policy_num_layer), str(layer_division)),
+    exp_name='ppo-oracle-{}-p{}-num{}-div{}-{}-o{}-3e-5'.format(ENV_NAME, str(policy_layer_size), str(policy_num_layer), str(layer_division), str(reward_type), str(reward_scale)),
     num_seeds=1,
     instance_type='c4.4xlarge',
     use_gpu=True,
@@ -33,8 +37,8 @@ if __name__ == "__main__":
         env_name=ENV_NAME,
         env_kwargs=dict(
             terminates=False,
-            use_desired_goal = True,
-            reward_type = "else"
+            use_desired_goal = use_desired_goal,
+            reward_type = reward_type
         ),
         replay_buffer_size=horizon,
         policy_kwargs=dict(
@@ -43,7 +47,8 @@ if __name__ == "__main__":
             layer_division = layer_division
         ),
         trainer_kwargs = dict(
-
+            reward_bounds=(-50, 50),
+            reward_scale=reward_scale,  # increasing reward scale helps learning signal
         ),
         value_kwargs=dict(
             layer_size=policy_layer_size,
@@ -52,8 +57,8 @@ if __name__ == "__main__":
             discount=0.99,
             gae_lambda=0.97,
             ppo_epsilon=0.1,
-            policy_lr=3e-4,
-            value_lr=3e-4,
+            policy_lr=3e-5,
+            value_lr=3e-5,
             target_kl=0.01,
             num_epochs=num_epochs,
             policy_batch_size=200,

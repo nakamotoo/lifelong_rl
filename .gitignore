@@ -18,3 +18,4 @@ MUJOCO_LOG.TXT
 /tmp
 /visualize
 /.ipynb_checkpoints
+/results
