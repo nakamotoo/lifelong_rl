@@ -8,16 +8,16 @@ num_epochs =  8
 policy_layer_size = 512
 discrim_layer_size = 512
 horizon = int(2000)
-memory_bit = 12
+memory_bit = 18
 
 intrinsic_reward_scale= 1  # increasing reward scale helps learning signal
-oracle_reward_scale = 10
+oracle_reward_scale = 0
 
 ENV_NAME = 'PartialHalfCheetah'
 partial_mode = 'vel'
 reward_mode = 'forward'
 
-is_downstream = True
+is_downstream = False
 # robin1 前に走るmodel
 load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-20-kbit-memory-ppo-PartialHalfCheetah-p512-d512/01-20-kbit-memory-ppo-PartialHalfCheetah-p512-d512_2022_01_20_13_09_44_0000--s-37857306/itr_6999"
 # robin1 後ろに走るmodel
@@ -28,7 +28,7 @@ if is_downstream:
 elif oracle_reward_scale > 0:
     exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}-blend-{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit), str(intrinsic_reward_scale), str(oracle_reward_scale))
 else:
-    exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit))
+    exp_name='kbit-memory-ppo-{}-{}-p{}-d{}-{}bit'.format(str(ENV_NAME), str(partial_mode), str(policy_layer_size), str(discrim_layer_size), str(memory_bit))
 
 experiment_kwargs = dict(
     exp_name=exp_name,

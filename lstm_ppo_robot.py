@@ -11,35 +11,37 @@ horizon = int(2000)
 policy_num_layer = 2
 discrim_num_layer = 2
 layer_division = 2
-is_downstream = True
+is_downstream = False
+# initial_distance, z_distance, sparse, goal_distance, initial_distance_sparse
+reward_type = "z_distance"
+use_desired_goal = False
 
 # PartialPickAndPlace
 # PartialPush
 # PartialSlide
 
 ENV_NAME = 'PartialPickAndPlace'
-intrinsic_reward_scale= 0  # increasing reward scale helps learning signal
-oracle_reward_scale = 1
+intrinsic_reward_scale= 4  # increasing reward scale helps learning signal
+oracle_reward_scale = 3
 
-# robin0 PartialPush
-# load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-25-lstm-memory-ppo-PartialPush-p512-2-d512-div2/01-25-lstm-memory-ppo-PartialPush-p512-2-d512-div2_2022_01_25_21_51_13_0000--s-46118288/itr_2999"
-# robin0 PickandPlace 512 256 256
-# load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-25-lstm-memory-ppo-PartialPickAndPlace-p512-2-d512-div2/01-25-lstm-memory-ppo-PartialPickAndPlace-p512-2-d512-div2_2022_01_25_21_50_09_0000--s-37403255/itr_1999"
-# robin0 PickandPlace 256 256 256
-load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-25-lstm-memory-ppo-PartialPickAndPlace-p256-2-d512-div1/01-25-lstm-memory-ppo-PartialPickAndPlace-p256-2-d512-div1_2022_01_25_21_55_11_0000--s-98672617/itr_2999"
+##robin0 use_desired_goal=False
+# PartialPickAndPlace
+# load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-27-lstm-memory-ppo-PartialPickAndPlace-p512-2-d512-div2/01-27-lstm-memory-ppo-PartialPickAndPlace-p512-2-d512-div2_2022_01_27_12_13_17_0000--s-5399581/itr_3999"
+# PartialPush
+load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-27-lstm-memory-ppo-PartialPush-p512-2-d512-div2/01-27-lstm-memory-ppo-PartialPush-p512-2-d512-div2_2022_01_27_18_33_58_0000--s-25628289/itr_3949"
 
 if policy_num_layer == 1:
     assert layer_division == 1
 
 if is_downstream:
-    use_desired_goal = True
-    exp_name='lstm-memory-ppo-{}-downstream-256-1e-4'.format(str(ENV_NAME))
+    use_desired_goal = use_desired_goal
+    exp_name='lstm-memory-ppo-{}-downstream-{}-o{}-3e-5'.format(str(ENV_NAME), reward_type, str(oracle_reward_scale))
 elif oracle_reward_scale > 0:
-    exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-div{}-blend-i{}-o{}'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer), str(discrim_layer_size), str(layer_division), str(intrinsic_reward_scale), str(oracle_reward_scale))
-    use_desired_goal = True
+    exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-div{}-blend-i{}-o{}-{}-3e-5'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer), str(discrim_layer_size), str(layer_division), str(intrinsic_reward_scale), str(oracle_reward_scale), str(reward_type))
+    use_desired_goal = use_desired_goal
 else:
-    exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-div{}'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer), str(discrim_layer_size), str(layer_division))
-    use_desired_goal = True
+    exp_name='lstm-memory-ppo-{}-p{}-{}-d{}-div{}-3e-5'.format(str(ENV_NAME), str(policy_layer_size), str(policy_num_layer), str(discrim_layer_size), str(layer_division))
+    use_desired_goal = use_desired_goal
 
 
 
@@ -52,7 +54,7 @@ experiment_kwargs = dict(
 
 
 if __name__ == "__main__":
-    os.environ["CUDA_VISIBLE_DEVICES"]='1'
+    os.environ["CUDA_VISIBLE_DEVICES"]='0'
     variant = dict(
         algorithm='LSTM-Memory-PPO',
         collector_type='lstm_memory',
@@ -62,7 +64,7 @@ if __name__ == "__main__":
         env_kwargs=dict(
             terminates=False,
             use_desired_goal = use_desired_goal,
-            reward_type = "else"
+            reward_type = reward_type
         ),
         policy_kwargs=dict(
             layer_size=policy_layer_size,
@@ -91,8 +93,8 @@ if __name__ == "__main__":
             discount=0.99,
             gae_lambda=0.97,
             ppo_epsilon=0.1,
-            policy_lr=1e-4,
-            value_lr=1e-4,
+            policy_lr=3e-5,
+            value_lr=3e-5,
             target_kl=0.01,
             num_epochs=num_epochs,
             policy_batch_size=512,
@@ -120,3 +122,12 @@ if __name__ == "__main__":
         sweep_values=sweep_values,
         **experiment_kwargs
     )
+
+
+## use_desired_goals= True
+# robin0 PartialPush
+# load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-25-lstm-memory-ppo-PartialPush-p512-2-d512-div2/01-25-lstm-memory-ppo-PartialPush-p512-2-d512-div2_2022_01_25_21_51_13_0000--s-46118288/itr_2999"
+# robin0 PickandPlace 512 256 256
+# load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-25-lstm-memory-ppo-PartialPickAndPlace-p512-2-d512-div2/01-25-lstm-memory-ppo-PartialPickAndPlace-p512-2-d512-div2_2022_01_25_21_50_09_0000--s-37403255/itr_1999"
+# robin0 PickandPlace 256 256 256
+# load_model_path = "/data/local/mitsuhiko/lifelong_rl/01-25-lstm-memory-ppo-PartialPickAndPlace-p256-2-d512-div1/01-25-lstm-memory-ppo-PartialPickAndPlace-p256-2-d512-div1_2022_01_25_21_55_11_0000--s-98672617/itr_2999"

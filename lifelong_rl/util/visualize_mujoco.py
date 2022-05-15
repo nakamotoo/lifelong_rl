@@ -4,7 +4,7 @@ import numpy as np
 import copy
 import os
 import time
-
+import mujoco_py
 
 def visualize_mujoco_from_states(env, sim_states, time_delay=0.008):
     """
@@ -28,9 +28,11 @@ def mujoco_rgb_from_states(env, sim_states, desired_goals, time_delay=0.008):
     for t in range(len(sim_states)):
         env.sim.set_state(sim_states[t])
         env.sim.forward()
-        if desired_goals is not None:
+        if desired_goals is not None or desired_goals[0] is not None:
             goal = desired_goals[t]
+            goal = [100, 100, 100] # visulizeするときにgoal無くしたいので
             env.set_goal(goal)
+        # rgb.append(env.render(mode='rgb_array', camera_name="hoge")) # camera_name = "track": カメラ移動
         rgb.append(env.render(mode='rgb_array'))
         time.sleep(time_delay)
     env.close()

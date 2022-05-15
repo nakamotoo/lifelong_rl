@@ -73,7 +73,6 @@ class PPOLSTMTrainer(PGTrainer):
             path['rewards'] = np.squeeze(path['rewards'], axis=-1)
             path['terminals'] = np.squeeze(path['terminals'], axis=-1)
         obs, actions = [], []
-
         for path in paths:
             obs.append(path['observations'])
             actions.append(path['actions'])

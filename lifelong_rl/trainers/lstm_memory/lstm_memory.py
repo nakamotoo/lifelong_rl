@@ -156,6 +156,12 @@ class LSTMMemoryTrainer(TorchTrainer):
         rewards = np.clip(rewards, *self.reward_bounds)  # stabilizes training
         return rewards, dict()
 
+    def oracle_reward_postprocessing(self, oracle):
+        # Some scaling of the rewards can help; it is very finicky though
+        rewards = oracle * self.oracle_reward_scale
+        rewards = np.clip(rewards, *self.reward_bounds)  # stabilizes training
+        return rewards
+
     def train_from_paths(self, paths, train_discrim=True, train_policy=True):
         """
         Reading new paths: append latent to state
@@ -175,6 +181,9 @@ class LSTMMemoryTrainer(TorchTrainer):
             oracle_rewards = path["rewards"]
             rewards = copy.deepcopy(path["rewards"])
 
+            if self.policy_trainer.env.reward_type == "initial_distance_sparse":
+                oracle_rewards[:-1] = 0
+                rewards[:-1] = 0
 
             ## goal relabeling with HER
             ## unsupervised pretrain では, rewardはintrinsicで計算するのでrelabelしなくていい
@@ -277,6 +286,7 @@ class LSTMMemoryTrainer(TorchTrainer):
         Compute intrinsic reward: approximate lower bound to I(s; z | o)
         """
 
+
         oracle_rewards = self._oracle_rewards[:self._cur_replay_size].squeeze()
 
         if self.relabel_rewards and not self.is_downstream:
@@ -299,9 +309,18 @@ class LSTMMemoryTrainer(TorchTrainer):
 
             gt.stamp('intrinsic reward calculation', unique=False)
 
+        # dowsntreaもの
+        if self.is_downstream:
+            rewards = self._rewards[:self._cur_replay_size].squeeze()
+            rewards = self.oracle_reward_postprocessing(rewards)
+            self._rewards[:self._cur_replay_size] = np.expand_dims(rewards, axis=-1)
+
         """
         Train policy
         """
+        print(oracle_rewards)
+        print(rewards)
+
         ppo_paths = [{
             "observations": self._obs[:self._cur_replay_size],
             "next_observations": self._true_next_obs[:self._cur_replay_size],
@@ -367,8 +386,8 @@ class LSTMMemoryTrainer(TorchTrainer):
             ))
             if self.is_downstream:
                 self.eval_statistics.update(create_stats_ordered_dict(
-                    'Relabeled Rewards',
-                    self._rewards[:self._cur_replay_size].squeeze(),
+                    'Rewards (Processed)',
+                    rewards,
                 ))
 
         self._n_train_steps_total += 1

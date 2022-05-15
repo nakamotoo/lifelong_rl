@@ -21,7 +21,9 @@ class PPOHERTrainer(TorchTrainer):
             replay_buffer,
             replay_size,
             replay_k = 1,
-            path_len = None
+            path_len = None,
+            reward_scale=1.,             # Typically beneficial to multiply rewards
+            reward_bounds=(-10, 10),     # Clip intrinsic rewards for stability
     ):
         super().__init__()
 
@@ -45,6 +47,8 @@ class PPOHERTrainer(TorchTrainer):
         self._need_to_update_eval_statistics = True
         self.eval_statistics = OrderedDict()
         self.path_len = path_len
+        self.reward_scale = reward_scale
+        self.reward_bounds = reward_bounds
 
     def add_sample(self, obs, next_obs, action, reward, oracle_reward, terminal):
         self._obs[self._ptr] = obs
@@ -72,6 +76,10 @@ class PPOHERTrainer(TorchTrainer):
             path_len = len(obs)
             relabeled_desired_goals = []
             oracle_rewards = path["rewards"]
+
+            if self.policy_trainer.env.reward_type == "initial_distance_sparse":
+                oracle_rewards[:-1] = 0
+
             # Relabel goals
             # for i in range(path_len):
             #     goal_ind = np.random.randint(i, path_len)
@@ -85,6 +93,7 @@ class PPOHERTrainer(TorchTrainer):
             # 距離がある程度近づいたら1, それじゃないなら0のバイナリreward
             # distance = np.linalg.norm(achieved_goals - relabeled_desired_goals, axis=-1)
             # relabeled_rewards = -(distance > 0.05).astype(np.float32)
+
             for t in range(path_len):
                 self.add_sample(
                     obs[t],
@@ -98,26 +107,37 @@ class PPOHERTrainer(TorchTrainer):
         gt.stamp('policy training', unique=False)
         self.train_ppo()
 
+    def reward_postprocessing(self, rewards):
+        # Some scaling of the rewards can help; it is very finicky though
+        rewards = rewards * self.reward_scale
+        rewards = np.clip(rewards, *self.reward_bounds)  # stabilizes training
+        return rewards
+
+
     def train_ppo(self):
+
+        oracle_rewards = self._oracle_rewards[:self._cur_replay_size].squeeze()
+        rewards = self._rewards[:self._cur_replay_size]
+        rewards = self.reward_postprocessing(rewards)
         ppo_paths = [{
             "observations": self._obs[:self._cur_replay_size],
             "next_observations": self._next_obs[:self._cur_replay_size],
             "actions": self._actions[:self._cur_replay_size],
-            "rewards": self._rewards[:self._cur_replay_size],
+            "rewards": rewards,
             "terminals": self._terminals[:self._cur_replay_size],
         }]
+
         self.policy_trainer.train_from_paths(ppo_paths, path_len = self.path_len)
         gt.stamp('policy training', unique=False)
 
         if self._need_to_update_eval_statistics:
             self.eval_statistics.update(self.policy_trainer.eval_statistics)
 
-        oracle_rewards = self._oracle_rewards[:self._cur_replay_size].squeeze()
-        rewards = self._rewards[:self._cur_replay_size].squeeze()
         self.eval_statistics.update(create_stats_ordered_dict(
-                'Relabeled Rewards',
+                'Rewards (Processed)',
                 rewards,
             ))
+
         self.eval_statistics.update(create_stats_ordered_dict(
                 'Oracle Rewards',
                 oracle_rewards,
